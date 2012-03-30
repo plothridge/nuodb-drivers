@@ -42,17 +42,26 @@ namespace NuoDb
 	private:
 		NuoDbCommand^ m_command;
 		System::Data::CommandBehavior m_behavior;
-		int m_fieldCount;
-		bool m_hasRows;
 		bool m_isClosed;
-		int m_recordsAffected;
 		SqlResultSetWrapper* m_results;
+		bool m_disposed;
+		List<NuoDbColumnInfo^> m_columns;
+		//List<NuoDbType> m_columnTypes;
 #pragma endregion
 
 #pragma region Construction / Destruction
 	internal:
 		NuoDbDataReader(SqlResultSetWrapper* results, NuoDbCommand^ command, System::Data::CommandBehavior behavior);
 		~NuoDbDataReader();
+
+	protected:
+		/// Disposes of this instance of <c>NuoDbDataReader</c>.
+		!NuoDbDataReader();
+#pragma endregion
+
+#pragma region Implementation
+	private:
+		void ExtractMetadata();
 #pragma endregion
 
 #pragma region DbDataReader Overrides
@@ -202,7 +211,7 @@ namespace NuoDb
 		/// <param name="ordinal">The zero-based column ordinal.</param>
 		/// <returns>The value of the specified column.</returns>
 		/// <exception cref="InvalidCastException">The specified cast is not valid.</exception>
-		virtual DateTime GetDateTime(int ordinal) override;
+		virtual System::DateTime GetDateTime(int ordinal) override;
 
 		/// <summary>
 		/// Gets the value of the specified column as a <see cref="Decimal"/>.
@@ -218,7 +227,7 @@ namespace NuoDb
 		/// <param name="ordinal">The zero-based column ordinal.</param>
 		/// <returns>The value of the specified column.</returns>
 		/// <exception cref="InvalidCastException">The specified cast is not valid.</exception>
-		virtual Double GetDouble(int ordinal) override;
+		virtual System::Double GetDouble(int ordinal) override;
 
 		/// <summary>
 		/// Returns an <see cref="System::Collections::IEnumerator"/> that can be used to iterate through the rows in the data reader.
