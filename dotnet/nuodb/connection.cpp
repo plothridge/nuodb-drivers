@@ -194,6 +194,27 @@ void NuoDb::NuoDbConnection::OpenConnection()
 		nuodb::sqlapi::SqlOption opts[4];
 		nuodb::sqlapi::SqlOptionArray conn_opts;
 
+#if DOTNET_35
+		System::String^ localDatabase(m_database);
+
+		opts[0].option = "database";
+		opts[0].extra = (void*)mc->marshal_as<const char*>(localDatabase);
+
+		System::String^ localSchema(m_schema);
+
+		opts[1].option = "schema";
+		opts[1].extra = (void*)mc->marshal_as<const char*>(localSchema);
+
+		System::String^ localUsername(m_username);
+
+		opts[2].option = "username";
+		opts[2].extra = (void*)mc->marshal_as<const char*>(localUsername);
+
+		System::String^ localPassword(m_password);
+
+		opts[3].option = "password";
+		opts[3].extra = (void*)mc->marshal_as<const char*>(localPassword);
+#else
 		opts[0].option = "database";
 		opts[0].extra = (void*)mc->marshal_as<const char*>(m_database);
 		opts[1].option = "schema";
@@ -202,6 +223,7 @@ void NuoDb::NuoDbConnection::OpenConnection()
 		opts[2].extra = (void*)mc->marshal_as<const char*>(m_username);
 		opts[3].option = "password";
 		opts[3].extra = (void*)mc->marshal_as<const char*>(m_password);
+#endif //DOTNET_35
 
 		conn_opts.count = 4;
 		conn_opts.array = opts;
