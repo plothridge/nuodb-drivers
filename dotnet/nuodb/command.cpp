@@ -33,6 +33,7 @@
 #include "exception.h"
 #include "parameter.h"
 #include "command.h"
+#include "datareader.h"
 
 #pragma region Construction / Destruction
 NuoDb::NuoDbCommand::NuoDbCommand() :
@@ -99,7 +100,11 @@ NuoDb::NuoDbDataReader^ NuoDb::NuoDbCommand::ExecuteDataReader(CommandBehavior b
 	if (System::String::IsNullOrEmpty(m_commandText))
 		throw gcnew NuoDbException("There is no CommandText.");
 
-	throw gcnew NotImplementedException();
+	NuoDbDataReader^ reader = gcnew NuoDbDataReader(m_currentResults, this, behavior);
+
+	m_currentResults = NULL; // we don't own it anymore!
+
+	return reader;
 }
 
 void NuoDb::NuoDbCommand::Execute()
@@ -123,7 +128,14 @@ void NuoDb::NuoDbCommand::Execute()
 	try
 	{
 		SqlConnectionWrapper* c = m_connection->InternalConnection;
+
+#if DOTNET_35
+		System::String^ local(m_commandText);
+
+		const char* s = mc->marshal_as<const char*>(local);
+#else
 		const char* s = mc->marshal_as<const char*>(m_commandText);
+#endif //DOTNET_35
 
 		if (0 == m_parameters->Count)
 		{

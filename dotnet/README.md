@@ -6,7 +6,7 @@ This is the .NET database provider for [NuoDB](http://www.nuodb.com).
 
 This software is provided under the BSD license:
 
-* [NuoDB License](nuodb-drivers/tree/master/LICENSE)
+* [NuoDB License](../LICENSE)
 
 ## Status ##
 
@@ -26,7 +26,3 @@ Using VS2010, open the appropriate solution:
 * **nuodb35.sln** - for .NET 3.5
 
 The build presumes that you have installed the NuoDB API at `c:\opt\NuoDB\api`.
-
-## Known Issues ##
-
-There is a known issue using `msclr::interop::marshal_context` when building for .NET 3.5.

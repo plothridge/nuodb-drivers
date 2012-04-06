@@ -39,16 +39,16 @@ namespace NuoDb
 #pragma region Instance Fields
 	private:
 		int m_lineNumber;
-		String^ m_message;
+		System::String^ m_message;
 		int m_number;
-		String^ m_server;
-		String^ m_source;
+		System::String^ m_server;
+		System::String^ m_source;
 		Byte^ m_state;
 #pragma endregion
 
 #pragma region Construction / Destruction
 	internal:
-		NuoDbError(String^ server, String^ message, int lineNumber, int number, Byte^ state);
+		NuoDbError(System::String^ server, System::String^ message, int lineNumber, int number, Byte^ state);
 #pragma endregion
 
 #pragma region Properties
@@ -64,9 +64,9 @@ namespace NuoDb
 		/// <summary>
 		/// Gets the error message.
 		/// </summary>
-		property String^ Message 
+		property System::String^ Message 
 		{
-			String^ get() { return m_message; }
+			System::String^ get() { return m_message; }
 		}
 		
 		/// <summary>
@@ -80,17 +80,17 @@ namespace NuoDb
 		/// <summary>
 		/// Gets the server where the error occurred.
 		/// </summary>
-		property String^ Server 
+		property System::String^ Server 
 		{
-			String^ get() { return m_server; }
+			System::String^ get() { return m_server; }
 		}
 
 		/// <summary>
 		/// Gets the source of the error.
 		/// </summary>
-		property String^ Source
+		property System::String^ Source
 		{
-			String^ get() { return m_source; }
+			System::String^ get() { return m_source; }
 		}
 
 		/// <summary>

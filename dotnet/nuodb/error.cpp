@@ -32,7 +32,7 @@
 
 #pragma region NuoDbError
 #pragma region Construction / Destruction
-NuoDb::NuoDbError::NuoDbError(String^ server, String^ message, int lineNumber, int number, Byte^ state) :
+NuoDb::NuoDbError::NuoDbError(System::String^ server, System::String^ message, int lineNumber, int number, Byte^ state) :
 	m_source(".Net NuoDb Data Provider"),
 	m_server(server),
 	m_message(message),

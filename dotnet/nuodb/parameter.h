@@ -34,30 +34,6 @@ namespace NuoDb
 	ref class NuoDbCommand;
 
 	/// <summary>
-	/// Specifies NuoDb-specific data type of a field, property, for use in
-	/// a <see cref="NuoDbParameter"/>.
-	/// </summary>
-	public enum NuoDbType
-	{
-		/// Boolean
-		Boolean,
-		/// 32-bit integer
-		Integer,
-		/// 64-bit integer
-		BigInt,
-		/// 64-bit double precision number
-		Double,
-		/// String (char, varchar, ...)
-		String,
-		/// Date
-		Date,
-		/// Time
-		Time,
-		/// DateTime
-		DateTime
-	};
-
-	/// <summary>
 	/// Represents a parameter to a <see cref="NuoDbCommand"/> and optionally
 	/// its mapping to <see cref="DataSet"/> columns.
 	/// This class cannot be inherited.

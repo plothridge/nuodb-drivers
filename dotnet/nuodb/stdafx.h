@@ -59,6 +59,76 @@ using namespace System::Security::Permissions;
 
 namespace NuoDb
 {
+	/// NuoDb data types.
+	public enum NuoDbType
+	{
+		/// Boolean
+		Boolean,
+		/// 32-bit integer
+		Integer,
+		/// 64-bit integer
+		BigInt,
+		/// 64-bit double precision number
+		Double,
+		/// String (char, varchar, ...)
+		String,
+		/// Date
+		Date,
+		/// Time
+		Time,
+		/// DateTime
+		DateTime
+	};
+
+	private ref class NuoDbColumnInfo
+	{
+#pragma region Instance Fields
+	private:
+		System::String^ m_name;
+		NuoDbType m_type;
+#pragma endregion
+
+#pragma region Construction / Destruction
+	public:
+		NuoDbColumnInfo(System::String^ n, NuoDbType t) :
+			m_name(n),
+			m_type(t)
+		{
+		}
+
+		NuoDbColumnInfo(System::String^ n, nuodb::sqlapi::SqlType t) :
+			m_name(n),
+			m_type(String)
+		{
+			switch (t)
+			{
+				case nuodb::sqlapi::SQL_BOOLEAN: m_type = Boolean; break;
+				case nuodb::sqlapi::SQL_INTEGER: m_type = Integer; break;
+				case nuodb::sqlapi::SQL_BIGINT: m_type = BigInt; break;
+				case nuodb::sqlapi::SQL_DOUBLE: m_type = Double; break;
+				case nuodb::sqlapi::SQL_DATE: m_type = Date; break;
+				case nuodb::sqlapi::SQL_TIME: m_type = Time; break;
+				case nuodb::sqlapi::SQL_DATETIME: m_type = DateTime; break;
+
+				default: break;
+			}
+		}
+#pragma endregion
+
+#pragma region Properties
+	public:
+		property System::String^ Name
+		{
+			System::String^ get() { return m_name; }
+		}
+
+		property NuoDbType Type
+		{
+			NuoDbType get() { return m_type; }
+		}
+#pragma endregion
+	};
+
 	class SqlColumnMetaDataWrapper
 	{
 		NUODB_WRAPPER_BASE(SqlColumnMetaData)
@@ -67,6 +137,11 @@ namespace NuoDb
 	class SqlConnectionWrapper
 	{
 		NUODB_WRAPPER_BASE(SqlConnection)
+	};
+	
+	class SqlDateWrapper
+	{
+		NUODB_WRAPPER_BASE(SqlDate)
 	};
 
 	class SqlEnvironmentWrapper
