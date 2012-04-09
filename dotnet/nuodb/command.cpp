@@ -100,6 +100,8 @@ NuoDb::NuoDbDataReader^ NuoDb::NuoDbCommand::ExecuteDataReader(CommandBehavior b
 	if (System::String::IsNullOrEmpty(m_commandText))
 		throw gcnew NuoDbException("There is no CommandText.");
 
+	Execute();
+
 	NuoDbDataReader^ reader = gcnew NuoDbDataReader(m_currentResults, this, behavior);
 
 	m_currentResults = NULL; // we don't own it anymore!

@@ -40,7 +40,7 @@ namespace NuoDb
 	/// <remarks>
 	/// <see cref="ConnectionString"/>s are in the format:  <c>Database=W;Schema=X;User=Y;Password=Z</c>.
 	/// </remarks>
-	public ref class NuoDbConnection sealed : public DbConnection
+	public ref class NuoDbConnection sealed : public DbConnection, IDisposable
 	{
 #pragma region Instance Fields
 	private:

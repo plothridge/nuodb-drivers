@@ -169,6 +169,9 @@ void NuoDb::NuoDbConnection::OpenConnection()
 	if (m_connection != NULL)
 		throw gcnew NuoDbException("The connection is already open.");
 
+	if (System::String::IsNullOrEmpty(m_connectionString))
+		throw gcnew ArgumentNullException("ConnectionString");
+
 	if (System::String::IsNullOrEmpty(m_database))
 		throw gcnew ArgumentNullException("No database was specified in the ConnectionString");
 
