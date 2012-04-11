@@ -35,6 +35,20 @@ Once the environment variables are set, install with npm:
 $ npm install db-nuodb
 ```
 
+Note: Until such time as we properly set ORIGIN/RPATH you may need to explicitly
+set the LD_LIBRARY_PATH:
+
+```bash
+export LD_LIBRARY_PATH=/home/rbuck/.node_libraries/.npm/db-nuodb/0.1.0/package/build/default/
+```
+
+Also, verify you have both these files installed to the same directory as the
+nuo_bindings.node file:
+
+
+  libNuoRemote.so
+  libNuoSqlApi.so
+
 ## QUICK CHECK ##
 
 Run the following command to verify the shared library can be loaded by node:
