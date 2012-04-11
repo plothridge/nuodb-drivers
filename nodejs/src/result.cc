@@ -30,11 +30,11 @@
 
 #include "nuodb/sqlapi/SqlDate.h"
 
-node_db_nuodb::Result::Column::Column(nuodb::sqlapi::SqlColumnMetaData & metaData)
-    : name(metaData.getColumnName()), type(STRING), binary(false) {
+node_db_nuodb::Result::Column::Column(nuodb::sqlapi::SqlColumnMetaData * metaData)
+    : name(metaData->getColumnName()), type(STRING), binary(false) {
 
     using namespace nuodb::sqlapi;
-    switch (metaData.getType()) {
+    switch (metaData->getType()) {
         case SQL_DOUBLE:
             this->type = NUMBER;
             break;
@@ -68,7 +68,7 @@ node_db::Result::Column::type_t node_db_nuodb::Result::Column::getType() const {
     return this->type;
 }
 
-node_db_nuodb::Result::Result(nuodb::sqlapi::SqlResultSet & results) throw(node_db::Exception&)
+node_db_nuodb::Result::Result(nuodb::sqlapi::SqlResultSet * results) throw(node_db::Exception&)
     : columns(NULL),
     totalColumns(0),
     rowNumber(0),
@@ -82,7 +82,7 @@ node_db_nuodb::Result::Result(nuodb::sqlapi::SqlResultSet & results) throw(node_
     using namespace nuodb::sqlapi;
     try {
         this->empty = false;
-        this->totalColumns = resultSet.getColumnCount();
+        this->totalColumns = resultSet->getColumnCount();
 
         this->previousColumnLengths = new unsigned long[this->totalColumns];
         if (this->previousColumnLengths == NULL) {
@@ -100,13 +100,13 @@ node_db_nuodb::Result::Result(nuodb::sqlapi::SqlResultSet & results) throw(node_
         }
 
         for (uint16_t i = 0; i < this->totalColumns; i++) {
-            SqlColumnMetaData & metaData = this->resultSet.getMetaData(i);
+            SqlColumnMetaData * metaData = this->resultSet->getMetaData(i);
             this->columns[i] = new Column(metaData);
             if (this->columns[i] == NULL) {
                 this->totalColumns = i;
                 throw node_db::Exception("Could not allocate storage for column");
             }
-            metaData.release();
+            delete metaData;
         }
 
         this->nextRow = this->row(this->nextColumnLengths);
@@ -143,7 +143,7 @@ void node_db_nuodb::Result::free() throw() {
 }
 
 void node_db_nuodb::Result::release() throw() {
-    this->resultSet.release();
+    delete this->resultSet;
 }
 
 void node_db_nuodb::Result::freeRow(char** row) throw() {
@@ -190,7 +190,7 @@ unsigned long* node_db_nuodb::Result::columnLengths() throw(node_db::Exception&)
 #define Get_second(od) ((od)->second - 1)
 
 char** node_db_nuodb::Result::row(unsigned long* rowColumnLengths) throw(node_db::Exception&) {
-    if (!this->resultSet.next()) {
+    if (!this->resultSet->next()) {
         return NULL;
     }
 
@@ -205,7 +205,7 @@ char** node_db_nuodb::Result::row(unsigned long* rowColumnLengths) throw(node_db
         for (c=0; c < this->totalColumns; c++) {
             std::string string;
             if (this->columns[c]->getType() == Column::DATETIME) {
-                nuodb::sqlapi::SqlDate const * date = this->resultSet.getDate(c + 1);
+                nuodb::sqlapi::SqlDate const * date = this->resultSet->getDate(c + 1);
                 if (date == NULL) {
                     rowColumnLengths[c] = 0;
                     row[c] = NULL;
@@ -220,7 +220,7 @@ char** node_db_nuodb::Result::row(unsigned long* rowColumnLengths) throw(node_db
 
                 string = buffer;
             } else {
-                string = this->resultSet.getString(c + 1);
+                string = this->resultSet->getString(c + 1);
             }
 
             rowColumnLengths[c] = string.length();
