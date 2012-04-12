@@ -30,7 +30,7 @@
 #include "config.h"
 #endif
 
-#include <fonctional>
+#include <functional>
 #include <iostream>
 using namespace std;
 #include <time.h>
