@@ -1,4 +1,3 @@
-
 /****************************************************************************
  * Copyright (c) 2012, NuoDB, Inc.
  * All rights reserved.
@@ -31,7 +30,7 @@
 #include "config.h"
 #endif
 
-
+#include <functional>
 #include <iostream>
 using namespace std;
 #include <time.h>
