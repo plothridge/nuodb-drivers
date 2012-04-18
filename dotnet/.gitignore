@@ -13,6 +13,7 @@
 *.*scc
 *.sdf
 *.suo
+*.testsettings
 *.user
 
 [Dd]esktop.ini
