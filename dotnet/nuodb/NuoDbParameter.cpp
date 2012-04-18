@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Copyright (c) 2012, NuoDB, Inc.
 	All rights reserved.
 
@@ -28,106 +28,130 @@
 
 #include "stdafx.h"
 
-#include "parameter.h"
+#include "NuoDbParameter.h"
 
-#pragma region NuoDbParameter
-#pragma region Construction / Destruction
-NuoDb::NuoDbParameter::NuoDbParameter() : 
-	m_dbType(String),
-	m_direction(ParameterDirection::Input),
-	m_nullable(true),
-	m_name(System::String::Empty),
-	m_size(0),
-	m_source(System::String::Empty),
-	m_sourceNullMapping(false),
-	m_version(DataRowVersion::Original),
-	m_value(nullptr)
+NUODB_NAMESPACE_BEGIN
+
+NuoDbParameter::NuoDbParameter() : 
+	_dbType(NuoDb::NuoDbType::VarChar),
+	_direction(System::Data::ParameterDirection::Input),
+	_nullable(true),
+	_name(String::Empty),
+	_size(0),
+	_source(String::Empty),
+	_sourceNullMapping(false),
+	_version(System::Data::DataRowVersion::Original)
 {
 }
-#pragma endregion
 
-#pragma region Properties
-void NuoDb::NuoDbParameter::NuoDbType::set(NuoDb::NuoDbType t)
+void NuoDbParameter::NuoDbType::set(NuoDb::NuoDbType t)
 {
-	m_dbType = t;
-	m_version = DataRowVersion::Current;
+	_dbType = t;
+	_version = System::Data::DataRowVersion::Current;
 }
-#pragma endregion
 
-#pragma region DbParameter Overrides
-#pragma region Properties
-System::Data::DbType NuoDb::NuoDbParameter::DbType::get()
+System::Data::DbType NuoDbParameter::DbType::get()
 {
-	switch (m_dbType)
+	switch (_dbType)
 	{
-		case Boolean: return System::Data::DbType::Boolean;
-		case Integer: return System::Data::DbType::Int32;
-		case BigInt: return System::Data::DbType::Int64;
-		case Double: return System::Data::DbType::Double;
-		case Date: return System::Data::DbType::Date;
-		case Time: return System::Data::DbType::Time;
-		case DateTime: return System::Data::DbType::DateTime;
+		case NuoDb::NuoDbType::Bit: 
+		case NuoDb::NuoDbType::Boolean: 
+			return System::Data::DbType::Boolean;
 
+		case NuoDb::NuoDbType::TinyInt: return System::Data::DbType::Byte;
+		case NuoDb::NuoDbType::SmallInt: return System::Data::DbType::Int16;
+		case NuoDb::NuoDbType::Integer: return System::Data::DbType::Int32;
+		case NuoDb::NuoDbType::BigInt: return System::Data::DbType::Int64;
+		case NuoDb::NuoDbType::Float: return System::Data::DbType::Single;
+		case NuoDb::NuoDbType::Double: return System::Data::DbType::Double;
+		case NuoDb::NuoDbType::Char: return System::Data::DbType::StringFixedLength;
+
+		case NuoDb::NuoDbType::VarChar:
+		case NuoDb::NuoDbType::LongVarChar:
+		case NuoDb::NuoDbType::Clob:
+			return System::Data::DbType::String;
+
+		case NuoDb::NuoDbType::Date: return System::Data::DbType::DateTime;
+
+		case NuoDb::NuoDbType::Time: return System::Data::DbType::Time;
+		case NuoDb::NuoDbType::Timestamp: return System::Data::DbType::DateTime2;
+		
+		case NuoDb::NuoDbType::Blob:
+		case NuoDb::NuoDbType::Binary:
+		case NuoDb::NuoDbType::LongVarBinary:
+			return System::Data::DbType::Object;
+
+		case NuoDb::NuoDbType::Numeric: return System::Data::DbType::VarNumeric;
+		case NuoDb::NuoDbType::Decimal: return System::Data::DbType::Decimal;
+			
 		default: return System::Data::DbType::String;
 	}
 }
 
-void NuoDb::NuoDbParameter::DbType::set(System::Data::DbType value)
+void NuoDbParameter::DbType::set(System::Data::DbType value)
 {
 	switch (value)
 	{
-		case System::Data::DbType::Boolean: m_dbType = Boolean; break;
-		case System::Data::DbType::Int32: m_dbType = Integer; break;
-		case System::Data::DbType::Int64: m_dbType = BigInt; break;
-		case System::Data::DbType::Double: m_dbType = Double; break;
-		case System::Data::DbType::String: m_dbType = String; break;
-		case System::Data::DbType::Date: m_dbType = Date; break;
-		case System::Data::DbType::Time: m_dbType = Time; break;
-		case System::Data::DbType::DateTime: m_dbType = DateTime; break;
+		case System::Data::DbType::Byte: _dbType = NuoDb::NuoDbType::TinyInt; break;
+		case System::Data::DbType::Boolean: _dbType = NuoDb::NuoDbType::Boolean; break;
+
+		case System::Data::DbType::Currency:
+		case System::Data::DbType::Double:
+			_dbType = NuoDb::NuoDbType::Boolean;
+			
+			break;
+
+		case System::Data::DbType::Date:
+		case System::Data::DbType::DateTime:
+			_dbType = NuoDb::NuoDbType::Date;
+			
+			break;
+
+		case System::Data::DbType::Decimal: _dbType = NuoDb::NuoDbType::Decimal; break;
+
+		case System::Data::DbType::Int16: _dbType = NuoDb::NuoDbType::SmallInt; break;
+		case System::Data::DbType::Int32: _dbType = NuoDb::NuoDbType::Integer; break;
+		case System::Data::DbType::Int64: _dbType = NuoDb::NuoDbType::BigInt; break;
+		case System::Data::DbType::Single: _dbType = NuoDb::NuoDbType::Float; break;
+		
+		case System::Data::DbType::String: _dbType = NuoDb::NuoDbType::VarChar; break;
+		case System::Data::DbType::Time: _dbType = NuoDb::NuoDbType::Time; break;
+		case System::Data::DbType::StringFixedLength: _dbType = NuoDb::NuoDbType::Char; break;
+		case System::Data::DbType::DateTime2: _dbType = NuoDb::NuoDbType::Timestamp; break;
 
 		default: throw gcnew ArgumentException("value");
 	}
 
-	m_version = DataRowVersion::Current;
+	_version = System::Data::DataRowVersion::Current;
 }
 
-void NuoDb::NuoDbParameter::ParameterName::set(System::String^ value)
+
+void NuoDbParameter::ParameterName::set(String^ value)
 {
-	if (System::String::IsNullOrEmpty(value))
+	if (String::IsNullOrEmpty(value))
 		throw gcnew ArgumentNullException("ParameterName");
 
-	m_name = value;
+	_name = value;
 }
 
-void NuoDb::NuoDbParameter::Value::set(Object^ value)
+void NuoDbParameter::Value::set(Object^ value)
 {
-	m_version = DataRowVersion::Current;
-	m_value = value;
-}
-#pragma endregion
+	if (!_nullable && nullptr == value)
+		throw gcnew ArgumentException("The parameter does not accept null values");
 
-#pragma region Methods
-void NuoDb::NuoDbParameter::ResetDbType()
-{
-	m_version = DataRowVersion::Current;
-	m_dbType = String;
+	_version = System::Data::DataRowVersion::Current;
+	_value = value;
 }
-#pragma endregion
-#pragma endregion
-#pragma endregion
 
-#pragma region NuoDbParameterCollection
-#pragma region Construction / Destruction
-NuoDb::NuoDbParameterCollection::NuoDbParameterCollection()
+void NuoDbParameter::ResetDbType()
 {
-	m_parameters = gcnew List<NuoDbParameter^>();
+	_version = System::Data::DataRowVersion::Current;
+	_dbType = NuoDb::NuoDbType::VarChar;
 }
-#pragma endregion
 
-#pragma region Methods
-NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::Add(System::String^ parameterName, NuoDb::NuoDbType type)
+NuoDbParameter^ NuoDbParameterCollection::Add(String^ parameterName, NuoDb::NuoDbType type)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	if (IndexOf(parameterName) >= 0)
@@ -138,14 +162,14 @@ NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::Add(System::String^ para
 	p->ParameterName = parameterName;
 	p->NuoDbType = type;
 
-	m_parameters->Add(p);
+	_parameters->Add(p);
 
 	return p;
 }
 
-NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::Add(System::String^ parameterName, NuoDbType type, int size)
+NuoDbParameter^ NuoDbParameterCollection::Add(String^ parameterName, NuoDbType type, int size)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	if (IndexOf(parameterName) >= 0)
@@ -157,20 +181,20 @@ NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::Add(System::String^ para
 	p->NuoDbType = type;
 	p->Size = size;
 
-	m_parameters->Add(p);
+	_parameters->Add(p);
 
 	return p;
 }
 
-NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::Add(System::String^ parameterName, NuoDbType type, int size, System::String^ sourceColumn)
+NuoDbParameter^ NuoDbParameterCollection::Add(String^ parameterName, NuoDbType type, int size, String^ sourceColumn)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	if (IndexOf(parameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + parameterName + "\" in the collection", "value");
 
-	if (System::String::IsNullOrEmpty(sourceColumn))
+	if (String::IsNullOrEmpty(sourceColumn))
 		throw gcnew ArgumentNullException("sourceColumn");
 
 	NuoDbParameter^ p = gcnew NuoDbParameter();
@@ -180,39 +204,39 @@ NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::Add(System::String^ para
 	p->Size = size;
 	p->SourceColumn = sourceColumn;
 
-	m_parameters->Add(p);
+	_parameters->Add(p);
 
 	return p;
 }
 
-void NuoDb::NuoDbParameterCollection::AddRange(array<NuoDbParameter^>^ values)
+void NuoDbParameterCollection::AddRange(array<NuoDbParameter^>^ values)
 {
 	if (nullptr == values)
 		throw gcnew ArgumentNullException("values");
 
 	for each (NuoDbParameter^ p in values)
 	{
-		if (System::String::IsNullOrEmpty(p->ParameterName))
+		if (String::IsNullOrEmpty(p->ParameterName))
 			throw gcnew ArgumentException("At least one parameter does not have a name.");
 
 		if (IndexOf(p->ParameterName) >= 0)
 			throw gcnew ArgumentException("There is already a parameter named \"" + p->ParameterName + "\" in the collection", "value");
 
-		m_parameters->Add(p);
+		_parameters->Add(p);
 	}
 }
 
-void NuoDb::NuoDbParameterCollection::CopyTo(array<NuoDbParameter^>^ a, int index)
+void NuoDbParameterCollection::CopyTo(array<NuoDbParameter^>^ a, int index)
 {
 	if (nullptr == a)
 		throw gcnew ArgumentNullException("a");
 
-	m_parameters->CopyTo(a, index);
+	_parameters->CopyTo(a, index);
 }
 
-void NuoDb::NuoDbParameterCollection::Insert(int index, NuoDbParameter^ value)
+void NuoDbParameterCollection::Insert(int index, NuoDbParameter^ value)
 {
-	if (index < 0 || index >= m_parameters->Count)
+	if (index < 0 || index >= _parameters->Count)
 		throw gcnew IndexOutOfRangeException("index");
 
 	if (nullptr == value)
@@ -221,48 +245,45 @@ void NuoDb::NuoDbParameterCollection::Insert(int index, NuoDbParameter^ value)
 	if (IndexOf(value->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + value->ParameterName + "\" in the collection", "value");
 
-	m_parameters->Insert(index, value);
+	_parameters->Insert(index, value);
 }
 
-void NuoDb::NuoDbParameterCollection::Remove(NuoDbParameter^ value)
+void NuoDbParameterCollection::Remove(NuoDbParameter^ value)
 {
 	if (nullptr == value)
 		throw gcnew ArgumentNullException("value");
 
-	m_parameters->Remove(value);
+	_parameters->Remove(value);
 }
-#pragma endregion
 
-#pragma region DbParameterCollection Overrides
-#pragma region Properties
-NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::default::get(int index)
+NuoDbParameter^ NuoDbParameterCollection::default::get(int index)
 {
-	if (index < 0 || index >= m_parameters->Count)
+	if (index < 0 || index >= _parameters->Count)
 		throw gcnew IndexOutOfRangeException("index");
 
-	return m_parameters[index];
+	return _parameters[index];
 }
 
-void NuoDb::NuoDbParameterCollection::default::set(int index, NuoDbParameter^ value)
+void NuoDbParameterCollection::default::set(int index, NuoDbParameter^ value)
 {
-	if (index < 0 || index >= m_parameters->Count)
+	if (index < 0 || index >= _parameters->Count)
 		throw gcnew IndexOutOfRangeException("index");
 
 	if (nullptr == value)
 		throw gcnew ArgumentNullException("value");
 
-	if (System::String::IsNullOrEmpty(value->ParameterName))
+	if (String::IsNullOrEmpty(value->ParameterName))
 		throw gcnew ArgumentException("The parameter does not have a name.");
 
 	if (IndexOf(value->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + value->ParameterName + "\" in the collection", "value");
 
-	m_parameters[index] = value;
+	_parameters[index] = value;
 }
 
-NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::default::get(System::String^ parameterName)
+NuoDbParameter^ NuoDbParameterCollection::default::get(String^ parameterName)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	int index = IndexOf(parameterName);
@@ -270,12 +291,12 @@ NuoDb::NuoDbParameter^ NuoDb::NuoDbParameterCollection::default::get(System::Str
 	if (index < 0)
 		throw gcnew IndexOutOfRangeException("parameterName");
 
-	return m_parameters[index];
+	return _parameters[index];
 }
 
-void NuoDb::NuoDbParameterCollection::default::set(System::String^ parameterName, NuoDbParameter^ value)
+void NuoDbParameterCollection::default::set(String^ parameterName, NuoDbParameter^ value)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	if (nullptr == value)
@@ -286,18 +307,16 @@ void NuoDb::NuoDbParameterCollection::default::set(System::String^ parameterName
 	if (index < 0)
 		throw gcnew IndexOutOfRangeException("parameterName");
 
-	if (System::String::IsNullOrEmpty(value->ParameterName))
+	if (String::IsNullOrEmpty(value->ParameterName))
 		throw gcnew ArgumentException("The parameter does not have a name.");
 
 	if (value->ParameterName != parameterName && IndexOf(value->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + value->ParameterName + "\" in the collection", "value");
 
-	m_parameters[index] = value;
+	_parameters[index] = value;
 }
-#pragma endregion
 
-#pragma region Methods
-int NuoDb::NuoDbParameterCollection::Add(Object^ value)
+int NuoDbParameterCollection::Add(Object^ value)
 {
 	if (nullptr == value)
 		throw gcnew ArgumentNullException("value");
@@ -307,18 +326,18 @@ int NuoDb::NuoDbParameterCollection::Add(Object^ value)
 	if (nullptr == p)
 		throw gcnew ArgumentException("value is not a NuoDbParameter", "value");
 
-	if (System::String::IsNullOrEmpty(p->ParameterName))
+	if (String::IsNullOrEmpty(p->ParameterName))
 		throw gcnew ArgumentException("The parameter does not have a name.");
 
 	if (IndexOf(p->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + p->ParameterName + "\" in the collection", "value");
 
-	m_parameters->Add(p);
+	_parameters->Add(p);
 
-	return m_parameters->Count - 1;
+	return _parameters->Count - 1;
 }
 
-void NuoDb::NuoDbParameterCollection::AddRange(Array^ values)
+void NuoDbParameterCollection::AddRange(Array^ values)
 {
 	if (nullptr == values)
 		throw gcnew ArgumentNullException("values");
@@ -336,68 +355,68 @@ void NuoDb::NuoDbParameterCollection::AddRange(Array^ values)
 		if (IndexOf(p->ParameterName) >= 0)
 			throw gcnew ArgumentException("There is already a parameter named \"" + p->ParameterName + "\" in the collection", "value");
 
-		m_parameters->Add(p);
+		_parameters->Add(p);
 	}
 }
 
-bool NuoDb::NuoDbParameterCollection::Contains(Object^ value)
+bool NuoDbParameterCollection::Contains(Object^ value)
 {
 	if (nullptr == value)
 		throw gcnew ArgumentNullException("value");
 
-	if (0 == m_parameters->Count)
+	if (0 == _parameters->Count)
 		return false;
 
-	for each (NuoDbParameter^ p in m_parameters)
+	for each (NuoDbParameter^ p in _parameters)
 		if (value == p->Value)
 			return true;
 
 	return false;
 }
 
-bool NuoDb::NuoDbParameterCollection::Contains(System::String^ value)
+bool NuoDbParameterCollection::Contains(String^ value)
 {
-	if (System::String::IsNullOrEmpty(value))
+	if (String::IsNullOrEmpty(value))
 		throw gcnew ArgumentNullException("value");
 
 	return IndexOf(value) >= 0;
 }
 
-void NuoDb::NuoDbParameterCollection::CopyTo(Array^ a, int index)
+void NuoDbParameterCollection::CopyTo(Array^ a, int index)
 {
 	if (nullptr == a)
 		throw gcnew ArgumentNullException("a");
 
-	Array::Copy((Array^)m_parameters, a, index);
+	Array::Copy((Array^)_parameters, a, index);
 }
 
-int NuoDb::NuoDbParameterCollection::IndexOf(Object^ value)
+int NuoDbParameterCollection::IndexOf(Object^ value)
 {
 	if (nullptr == value)
 		throw gcnew ArgumentNullException("value");
 
-	for (int i = 0; i < m_parameters->Count; i++)
-		if (m_parameters == value)
+	for (int i = 0; i < _parameters->Count; i++)
+		if (_parameters[i] == value)
 			return i;
 
 	return -1;
 }
 
-int NuoDb::NuoDbParameterCollection::IndexOf(System::String^ parameterName)
+int NuoDbParameterCollection::IndexOf(String^ parameterName)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
-	for (int i = 0; i < m_parameters->Count; i++)
-		if (m_parameters[i]->ParameterName == parameterName)
+	for (int i = 0; i < _parameters->Count; i++)
+		if (_parameters[i]->ParameterName == parameterName)
 			return i;
 
 	return -1;
 }
 
-void NuoDb::NuoDbParameterCollection::Insert(int index, Object^ value)
+void NuoDbParameterCollection::Insert(int index, Object^ value)
 {
-	if (index < 0 || index >= m_parameters->Count)
+	if (index < 0 || index >= _parameters->Count)
 		throw gcnew IndexOutOfRangeException("index");
 
 	if (nullptr == value)
@@ -414,10 +433,10 @@ void NuoDb::NuoDbParameterCollection::Insert(int index, Object^ value)
 	if (IndexOf(p->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + p->ParameterName + "\" in the collection", "value");
 
-	m_parameters->Insert(index, p);
+	_parameters->Insert(index, p);
 }
 
-void NuoDb::NuoDbParameterCollection::Remove(Object^ value)
+void NuoDbParameterCollection::Remove(Object^ value)
 {
 	if (nullptr == value)
 		throw gcnew ArgumentNullException("value");
@@ -425,33 +444,33 @@ void NuoDb::NuoDbParameterCollection::Remove(Object^ value)
 	int index = IndexOf(value);
 
 	if (index >= 0)
-		m_parameters->RemoveAt(index);
+		_parameters->RemoveAt(index);
 }
 
-void NuoDb::NuoDbParameterCollection::RemoveAt(int index)
+void NuoDbParameterCollection::RemoveAt(int index)
 {
-	if (index < 0 || index >= m_parameters->Count)
+	if (index < 0 || index >= _parameters->Count)
 		throw gcnew IndexOutOfRangeException("index");
 
-	m_parameters->RemoveAt(index);
+	_parameters->RemoveAt(index);
 }
 
-void NuoDb::NuoDbParameterCollection::RemoveAt(System::String^ parameterName)
+void NuoDbParameterCollection::RemoveAt(String^ parameterName)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	int index = IndexOf(parameterName);
 
 	if (index >= 0)
-		m_parameters->RemoveAt(index);
+		_parameters->RemoveAt(index);
 	else
 		throw gcnew IndexOutOfRangeException("parameterName");
 }
 
-void NuoDb::NuoDbParameterCollection::SetParameter(int index, DbParameter^ value)
+void NuoDbParameterCollection::SetParameter(int index, System::Data::Common::DbParameter^ value)
 {
-	if (index < 0 || index >= m_parameters->Count)
+	if (index < 0 || index >= _parameters->Count)
 		throw gcnew IndexOutOfRangeException("index");
 
 	if (nullptr == value)
@@ -465,12 +484,12 @@ void NuoDb::NuoDbParameterCollection::SetParameter(int index, DbParameter^ value
 	if (IndexOf(p->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + p->ParameterName + "\" in the collection", "value");
 
-	m_parameters[index] = p;
+	_parameters[index] = p;
 }
 
-void NuoDb::NuoDbParameterCollection::SetParameter(System::String^ parameterName, DbParameter^ value)
+void NuoDbParameterCollection::SetParameter(String^ parameterName, System::Data::Common::DbParameter^ value)
 {
-	if (System::String::IsNullOrEmpty(parameterName))
+	if (String::IsNullOrEmpty(parameterName))
 		throw gcnew ArgumentNullException("parameterName");
 
 	if (nullptr == value)
@@ -486,14 +505,13 @@ void NuoDb::NuoDbParameterCollection::SetParameter(System::String^ parameterName
 	if (index < 0)
 		throw gcnew IndexOutOfRangeException("parameterName");
 
-	if (System::String::IsNullOrEmpty(p->ParameterName))
+	if (String::IsNullOrEmpty(p->ParameterName))
 		throw gcnew ArgumentException("The parameter does not have a name.");
 
 	if (p->ParameterName != parameterName && IndexOf(p->ParameterName) >= 0)
 		throw gcnew ArgumentException("There is already a parameter named \"" + p->ParameterName + "\" in the collection", "value");
 
-	m_parameters[index] = p;
+	_parameters[index] = p;
 }
-#pragma endregion
-#pragma endregion
-#pragma endregion
+
+NUODB_NAMESPACE_END

@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Copyright (c) 2012, NuoDB, Inc.
 	All rights reserved.
 
@@ -26,38 +26,31 @@
 	ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "stdafx.h"
+#pragma once
 
-#include "connection.h"
-#include "transaction.h"
+NUODB_NAMESPACE_BEGIN
 
-#pragma region Construction / Destruction
-NuoDb::NuoDbTransaction::NuoDbTransaction(NuoDbConnection^ connection, System::Data::IsolationLevel isolationLevel) :
-	m_connection(nullptr),
-	m_isolationLevel(isolationLevel)
+public ref class NuoDbTransaction : public System::Data::Common::DbTransaction
 {
-	if (nullptr == connection)
-		throw gcnew ArgumentNullException("connection");
-}
-#pragma endregion
+private:
+	NuoDbConnection^ _connection;
+	System::Data::IsolationLevel _isolationLevel;
 
-#pragma region DbTransaction Overrides
-#pragma region Properties
-System::Data::Common::DbConnection^ NuoDb::NuoDbTransaction::DbConnection::get()
-{
-	return m_connection;
-}
-#pragma endregion
+internal:
+	NuoDbTransaction(NuoDbConnection^ connection, System::Data::IsolationLevel isolationLevel);
 
-#pragma region Methods
-void NuoDb::NuoDbTransaction::Commit()
-{
-	m_connection->CommitTransaction();
-}
+internal:
+	property NuoDbConnection^ Connection { NuoDbConnection^ get() { return _connection; } }
 
-void NuoDb::NuoDbTransaction::Rollback()
-{
-	m_connection->RollbackTransaction();
-}
-#pragma endregion
-#pragma endregion
+protected:
+	virtual property System::Data::Common::DbConnection^ DbConnection { System::Data::Common::DbConnection^ get() override { return _connection; } }
+
+public:
+	virtual property System::Data::IsolationLevel IsolationLevel { System::Data::IsolationLevel get() override { return _isolationLevel; } }
+
+public:
+	virtual void Commit() override;
+	virtual void Rollback() override;
+};
+
+NUODB_NAMESPACE_END

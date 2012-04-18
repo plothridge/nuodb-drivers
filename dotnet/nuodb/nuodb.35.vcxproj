@@ -11,11 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{6DAC6254-D000-4111-9CF6-D801148CB873}</ProjectGuid>
+    <ProjectGuid>{f25e3c44-7dd5-4d9e-ad76-d829c69c8e78}</ProjectGuid>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <Keyword>ManagedCProj</Keyword>
-    <RootNamespace>nuodb</RootNamespace>
-	  <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
+    <RootNamespace>NuoDb</RootNamespace>
+    <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
+    <ProjectName>nuodb</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -42,13 +43,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(ProjectDir)\bin\$(Configuration)35\</OutDir>
-    <IntDir>$(ProjectDir)\obj\$(Configuration)35\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(Configuration)35\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Configuration)35\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(ProjectDir)\bin\$(Configuration)35\</OutDir>
-    <IntDir>$(ProjectDir)\obj\$(Configuration)35\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(Configuration)35\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Configuration)35\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -56,14 +57,14 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;DOTNET_35;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>c:\src\nuodb\api\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>c:\opt\nuodb\include</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NuoSqlApi.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\opt\NuoDB\api\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>NuoRemote.lib;Platform.lib;SQL.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\opt\nuodb\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -71,17 +72,17 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;DOTNET_35;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>c:\src\nuodb\api\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>c:\opt\nuodb\include</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NuoSqlApi.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\opt\NuoDB\api\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>NuoRemote.lib;Platform.lib;SQL.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\opt\nuodb\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-	<ItemGroup>
+  <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Linq" />
@@ -90,30 +91,26 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="command.h" />
-    <ClInclude Include="connection.h" />
-    <ClInclude Include="datareader.h" />
-    <ClInclude Include="error.h" />
-    <ClInclude Include="exception.h" />
-    <ClInclude Include="parameter.h" />
+    <ClInclude Include="NuoDbCommand.h" />
+    <ClInclude Include="NuoDbConnection.h" />
+    <ClInclude Include="NuoDbDataReader.h" />
+    <ClInclude Include="NuoDbParameter.h" />
+    <ClInclude Include="NuoDbTransaction.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="transaction.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\global_assembly_info.cpp" />
     <ClCompile Include="assembly_info.cpp" />
-    <ClCompile Include="command.cpp" />
-    <ClCompile Include="connection.cpp" />
-    <ClCompile Include="datareader.cpp" />
-    <ClCompile Include="error.cpp" />
-    <ClCompile Include="exception.cpp" />
-    <ClCompile Include="parameter.cpp" />
+    <ClCompile Include="NuoDbCommand.cpp" />
+    <ClCompile Include="NuoDbConnection.cpp" />
+    <ClCompile Include="NuoDbDataReader.cpp" />
+    <ClCompile Include="NuoDbParameter.cpp" />
+    <ClCompile Include="NuoDbTransaction.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="transaction.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.ico" />

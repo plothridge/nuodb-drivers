@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Copyright (c) 2012, NuoDB, Inc.
 	All rights reserved.
 
@@ -28,22 +28,27 @@
 
 #include "stdafx.h"
 
-#include "exception.h"
+#include "NuoDbConnection.h"
+#include "NuoDbTransaction.h"
 
-NuoDb::NuoDbException::NuoDbException(SerializationInfo^ info, StreamingContext context) : DbException(info, context)
+NUODB_NAMESPACE_BEGIN
+
+NuoDbTransaction::NuoDbTransaction(NuoDbConnection^ connection, System::Data::IsolationLevel isolationLevel) :
+	_connection(connection),
+	_isolationLevel(isolationLevel)
 {
-	if (nullptr == info)
-		throw gcnew ArgumentNullException("info");
-
-	info->AddValue("ErrorCode", (int)m_errorCode);
+	if (nullptr == connection)
+		throw gcnew ArgumentNullException("connection");
 }
 
-void NuoDb::NuoDbException::GetObjectData(SerializationInfo^ info, StreamingContext context)
+void NuoDbTransaction::Commit()
 {
-	if (nullptr == info)
-		throw gcnew ArgumentNullException("info");
-
-	DbException::GetObjectData(info, context);
-
-	m_errorCode = (NuoDb::ErrorCode)info->GetInt32("ErrorCode");
+	_connection->CommitTransaction();
 }
+
+void NuoDbTransaction::Rollback()
+{
+	_connection->RollbackTransaction();
+}
+
+NUODB_NAMESPACE_END

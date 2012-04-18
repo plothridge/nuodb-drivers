@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Copyright (c) 2012, NuoDB, Inc.
 	All rights reserved.
 
@@ -30,137 +30,147 @@
 
 #include <msclr/marshal.h>
 
-#include "nuodb/sqlapi/SqlColumnMetaData.h"
-#include "nuodb/sqlapi/SqlConnection.h"
-#include "nuodb/sqlapi/SqlDatabaseMetaData.h"
-#include "nuodb/sqlapi/SqlDate.h"
-#include "nuodb/sqlapi/SqlEnvironment.h"
-#include "nuodb/sqlapi/SqlExceptions.h"
-#include "nuodb/sqlapi/SqlPreparedStatement.h"
-#include "nuodb/sqlapi/SqlResultSet.h"
-#include "nuodb/sqlapi/SqlStatement.h"
+#include "Connection.h"
 
 using namespace System;
-using namespace System::Collections;
-using namespace System::Collections::Generic;
-using namespace System::ComponentModel;
-using namespace System::Data;
-using namespace System::Data::Common;
-using namespace System::Runtime::Serialization;
-using namespace System::Security::Permissions;
 
-#define NUODB_WRAPPER_BASE(T) \
-	private: \
-		std::auto_ptr<nuodb::sqlapi::T> m_ref; \
-	public: \
-		T##Wrapper(nuodb::sqlapi::T* v) : m_ref(v) { } \
-	public: \
-		nuodb::sqlapi::T* ref() { return m_ref.get(); }
+#define NUODB_NAMESPACE_BEGIN namespace NuoDb {
+#define NUODB_NAMESPACE_END }
 
-namespace NuoDb
+#define NUODB_DEFAULT_COMMAND_TIMEOUT 90
+
+NUODB_NAMESPACE_BEGIN
+
+public enum class NuoDbType
 {
-	/// NuoDb data types.
-	public enum NuoDbType
+	Null = NuoDB::NUOSQL_NULL,
+	Bit = NuoDB::NUOSQL_BIT,
+	TinyInt = NuoDB::NUOSQL_TINYINT, // byte
+	SmallInt = NuoDB::NUOSQL_SMALLINT,
+	Integer = NuoDB::NUOSQL_INTEGER,
+	BigInt = NuoDB::NUOSQL_BIGINT,
+	Float = NuoDB::NUOSQL_FLOAT,
+	Double = NuoDB::NUOSQL_DOUBLE,
+	Char = NuoDB::NUOSQL_CHAR,
+	VarChar = NuoDB::NUOSQL_VARCHAR,
+	LongVarChar = NuoDB::NUOSQL_LONGVARCHAR,
+	Date = NuoDB::NUOSQL_DATE,
+	Time = NuoDB::NUOSQL_TIME,
+	Timestamp = NuoDB::NUOSQL_TIMESTAMP,
+	Blob = NuoDB::NUOSQL_BLOB,
+	Clob = NuoDB::NUOSQL_CLOB,
+	Numeric = NuoDB::NUOSQL_NUMERIC,
+	Decimal = NuoDB::NUOSQL_DECIMAL,
+	Boolean = NuoDB::NUOSQL_BOOLEAN,
+	Binary = NuoDB::NUOSQL_BINARY,
+	LongVarBinary = NuoDB::NUOSQL_LONGVARBINARY
+};
+
+public enum class NuoSqlErrorCode
+{
+	SyntaxError = SYNTAX_ERROR,
+	FeatureNotYetImplemented = FEATURE_NOT_YET_IMPLEMENTED,
+	BugCheck = BUG_CHECK,
+	CompileError = COMPILE_ERROR,
+	RuntimeError = RUNTIME_ERROR,
+	OcsError = OCS_ERROR,
+	NetworkError = NETWORK_ERROR,
+	ConversionError = CONVERSION_ERROR,
+	TruncationError = TRUNCATION_ERROR,
+	ConnectionError = CONNECTION_ERROR,
+	DdlError = DDL_ERROR,
+	ApplicationError = APPLICATION_ERROR,
+	SecurityError = SECURITY_ERROR,
+	DatabaseCorruption = DATABASE_CORRUPTION,
+	VersionError = VERSION_ERROR,
+	LicenseError = LICENSE_ERROR,
+	InternalError = INTERNAL_ERROR,
+	DebugError = DEBUG_ERROR,
+	LostBlog = LOST_BLOB,
+	InconsistentBlob = INCONSISTENT_BLOB,
+	DeletedBlob = DELETED_BLOB,
+	LogError = LOG_ERROR,
+	DatabaseDamaged = DATABASE_DAMAGED,
+	UpdateConflict = UPDATE_CONFLICT,
+	NoSuchTable = NO_SUCH_TABLE,
+	IndexOverflow = INDEX_OVERFLOW,
+	UniqueDuplicate = UNIQUE_DUPLICATE,
+	UncommittedUpdates = UNCOMMITTED_UPDATES,
+	Deadlock = DEADLOCK,
+	OutOfMemoryError = OUT_OF_MEMORY_ERROR,
+	OutOfRecordMemoryError = OUT_OF_RECORD_MEMORY_ERROR,
+	LockTimeout = LOCK_TIMEOUT,
+	PlatformError = PLATFORM_ERROR,
+	NoSchema = NO_SCHEMA,
+	ConfigurationError = CONFIGURATION_ERROR,
+	ReadOnlyError = READ_ONLY_ERROR,
+	NoGeneratedKeys = NO_GENERATED_KEYS,
+	ThrownException = THROWN_EXCEPTION,
+	InvalidTransactionIsolation = INVALID_TRANSACTION_ISOLATION,
+	UnsupportedTransactionIsolation = UNSUPPORTED_TRANSACTION_ISOLATION,
+	InvalidUtf8 = INVALID_UTF8,
+	ConstraintError = CONSTRAINT_ERROR
+};
+
+[Serializable]
+public ref class NuoDbException : System::Data::Common::DbException
+{
+private:
+	NuoSqlErrorCode _errorCode;
+	System::String^ _trace;
+	System::String^ _objectName;
+	System::String^ _sqlState;
+
+public:
+	NuoDbException(System::String^ message) :
+		System::Data::Common::DbException(message),
+		_errorCode(NuoSqlErrorCode::ApplicationError)
 	{
-		/// Boolean
-		Boolean,
-		/// 32-bit integer
-		Integer,
-		/// 64-bit integer
-		BigInt,
-		/// 64-bit double precision number
-		Double,
-		/// String (char, varchar, ...)
-		String,
-		/// Date
-		Date,
-		/// Time
-		Time,
-		/// DateTime
-		DateTime
-	};
+	}
 
-	private ref class NuoDbColumnInfo
+	NuoDbException(NuoDB::SQLException& e) :
+		System::Data::Common::DbException(gcnew System::String(e.getText())),
+		_errorCode((NuoSqlErrorCode)e.getSqlcode()),
+		_trace(gcnew System::String(e.getTrace())),
+		_sqlState(gcnew System::String(e.getSQLState()))
 	{
-#pragma region Instance Fields
-	private:
-		System::String^ m_name;
-		NuoDbType m_type;
-#pragma endregion
+	}
 
-#pragma region Construction / Destruction
-	public:
-		NuoDbColumnInfo(System::String^ n, NuoDbType t) :
-			m_name(n),
-			m_type(t)
-		{
-		}
+public:
+	property NuoSqlErrorCode ErrorCode { NuoSqlErrorCode get() new { return _errorCode; } }
+	property System::String^ Trace { System::String^ get() { return _trace; } }
+	property System::String^ SqlState { System::String^ get() { return _sqlState; } }
+};
 
-		NuoDbColumnInfo(System::String^ n, nuodb::sqlapi::SqlType t) :
-			m_name(n),
-			m_type(String)
-		{
-			switch (t)
-			{
-				case nuodb::sqlapi::SQL_BOOLEAN: m_type = Boolean; break;
-				case nuodb::sqlapi::SQL_INTEGER: m_type = Integer; break;
-				case nuodb::sqlapi::SQL_BIGINT: m_type = BigInt; break;
-				case nuodb::sqlapi::SQL_DOUBLE: m_type = Double; break;
-				case nuodb::sqlapi::SQL_DATE: m_type = Date; break;
-				case nuodb::sqlapi::SQL_TIME: m_type = Time; break;
-				case nuodb::sqlapi::SQL_DATETIME: m_type = DateTime; break;
+private ref class NuoDbColumnInfo
+{
+private:
+	String^ _name;
+	NuoDbType _type;
 
-				default: break;
-			}
-		}
-#pragma endregion
-
-#pragma region Properties
-	public:
-		property System::String^ Name
-		{
-			System::String^ get() { return m_name; }
-		}
-
-		property NuoDbType Type
-		{
-			NuoDbType get() { return m_type; }
-		}
-#pragma endregion
-	};
-
-	class SqlColumnMetaDataWrapper
+public:
+	NuoDbColumnInfo(String^ n, NuoDbType t) :
+		_name(n),
+		_type(t)
 	{
-		NUODB_WRAPPER_BASE(SqlColumnMetaData)
-	};
-	
-	class SqlConnectionWrapper
-	{
-		NUODB_WRAPPER_BASE(SqlConnection)
-	};
-	
-	class SqlDateWrapper
-	{
-		NUODB_WRAPPER_BASE(SqlDate)
-	};
+	}
 
-	class SqlEnvironmentWrapper
+	NuoDbColumnInfo(String^ n, int t) :
+		_name(n),
+		_type((NuoDbType)t)
 	{
-		NUODB_WRAPPER_BASE(SqlEnvironment)
-	};
+	}
 
-	class SqlPreparedStatementWrapper
-	{
-		NUODB_WRAPPER_BASE(SqlPreparedStatement)
-	};
+public:
+	property String^ Name { String^ get() { return _name; } }
+	property NuoDbType Type { NuoDbType get() { return _type; } }
+};
 
-	class SqlResultSetWrapper
-	{
-		NUODB_WRAPPER_BASE(SqlResultSet)
-	};
+ref class NuoDbCommand;
+ref class NuoDbConnection;
+ref class NuoDbDataReader;
+ref class NuoDbParameter;
+ref class NuoDbParameterCollection;
+ref class NuoDbTransaction;
 
-	class SqlStatementWrapper
-	{
-		NUODB_WRAPPER_BASE(SqlStatement)
-	};
-}
+NUODB_NAMESPACE_END

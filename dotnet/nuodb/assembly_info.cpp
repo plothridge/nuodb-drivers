@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Copyright (c) 2012, NuoDB, Inc.
 	All rights reserved.
 
@@ -41,6 +41,6 @@ using namespace System::Security::Permissions;
 //
 [assembly:AssemblyTitle("NuoDB .NET Database Provider")];
 [assembly:AssemblyDescription("NuoDB .NET Database Provider")];
-[assembly: Guid("2a7eb511-5a55-4b4a-845e-f221ad43bbe7")]
+[assembly: Guid("f25e3c44-7dd5-4d9e-ad76-d829c69c8e78")]
 
 [assembly:SecurityPermission(SecurityAction::RequestMinimum, UnmanagedCode = true)];
