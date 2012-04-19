@@ -572,7 +572,6 @@ PHP_FUNCTION(nuodb_fetch_array)
           add_assoc_zval(return_value, col, data);
         }
       }
-      php_error(E_NOTICE, "res1 (%p)", r);
     } else {
         if (NUODB_G(trace))
           php_error(E_NOTICE, "nuodb_fetch_array: no data to fetch for connection (%p) and result (%p)",
