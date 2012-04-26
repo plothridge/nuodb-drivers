@@ -48,6 +48,4 @@ Regarding Rake +extconf +extensions:
 
 This module is released under the [NUODB License] [license].
 
-Related Pages:
-
-[license]: https://github.com/nuodb/nuodb-drivers/blob/master/nodejs/LICENSE
+[license]: https://github.com/nuodb/nuodb-drivers/blob/master/LICENSE
