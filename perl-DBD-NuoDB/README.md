@@ -13,6 +13,7 @@ The following features have been implemented:
 
 The following has not been implemented yet:
 * All result values are returned as strings regardless of the original data type
+* Metadata methods have not been implemented
 * "?"-style placeholders, bind variables, etc. are not supported
 * Unicode and strings containing "\0" may be truncated
 * Windows has not been tested
