@@ -1,0 +1,10 @@
+Makefile.PL
+MANIFEST
+NuoDB.xs
+ppport.h
+lib/DBD/NuoDB.pm
+dbdimp.cpp
+dbdimp.h
+t/01-connect.t
+t/02-prepare.t
+t/03-autocommit.t
