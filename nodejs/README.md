@@ -98,7 +98,7 @@ This module is released under the [NUODB License] [license].
 Related Pages:
 
 [homepage]: http://nodejsdb.org/db-mysql
-[license]: (nuodb-drivers/tree/master/LICENSE)
+[license]: nuodb-drivers/tree/master/LICENSE
 [nci]: http://www.oracle.com/technetwork/database/features/oci/index.html
 [nci-lib]: http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html
 [nci-inc]: http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html
