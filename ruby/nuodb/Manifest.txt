@@ -4,9 +4,7 @@ Manifest.txt
 README.md
 Rakefile
 ext/nuodb/extconf.rb
-ext/nuodb/nuodb.c
+ext/nuodb/nuodb.cpp
 lib/nuodb.rb
 lib/nuodb/version.rb
-tasks/gem.rake
-tasks/native.rake
 test/test_nuodb.rb
