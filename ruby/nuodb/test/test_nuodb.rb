@@ -54,7 +54,7 @@ class TC_Nuodb < Test::Unit::TestCase
     @env = Nuodb::SqlEnvironment.createSqlEnvironment
     @con = @env.createSqlConnection @database, @schema, @username, @password
     @dmd = @con.getMetaData
-    assert_equal '%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion
+    assert_match /^1\./, @dmd.getDatabaseVersion
   end
 
   def test_select_from_dual()
