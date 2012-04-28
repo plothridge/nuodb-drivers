@@ -1,10 +1,12 @@
-NuoDB JRuby Sample
-==================
+Features
+========
 
-Includes: 
-1. NuoDB's JDBC gem - jdbc-nuodb-1.0.gem
-2. NuoDB's Active Record gem - activerecord-jdbcnuodb-adapter-1.0.gem
-3. Sample application - sample.rb
+* NuoDB's JDBC gem - jdbc-nuodb-1.0.gem
+* NuoDB's Active Record gem - activerecord-jdbcnuodb-adapter-1.0.gem
+* Sample application - sample/sample.rb
+
+Running the Sample
+==================
 
 To run the sample do the following:
 
@@ -27,7 +29,10 @@ jruby 1.6.5 (ruby-1.8.7-p330) (2011-10-25 9dcd388) (Java HotSpot(TM) 64-Bit Serv
 > jruby sample.rb
 
 
-To use NuoDB JRuby support in a RAILS application:
+Using Rails
+===========
+
+To use NuoDB in a JRuby Rails application:
 
 1. Include NuoDB information in the database.yml file as:
 
@@ -40,3 +45,4 @@ development:
 2. In the Gemfile, call the nuodb gem with:
 
 gem 'activerecord-jdbcnuodb-adapter'
+

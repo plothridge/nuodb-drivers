@@ -4,7 +4,7 @@ Features
 * Native DBI compatible driver
 * AREL integration
 * ActiveRecord driver
-* JRuby Driver
+
 
 Related Links
 =============
