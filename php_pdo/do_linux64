@@ -2,5 +2,5 @@ rm -fr CMakeCache.txt CMakeFiles php_nuodb.dir Makefile cmake_install.cmake .lib
 #cmake -g "Unix Makefile" -D PHP_INCLUDE=/usr/local/include/php -D NUOSQLAPI_ROOT=$HOME/nuodb/NuoSqlApi/NuoSqlApi-1.0.0-Linux .
 cmake -DCMAKE_BUILD_TYPE=Debug -g "Unix Makefile" -D PHP_INCLUDE=$HOME/php-5.3.10 -D NUOSQLAPI_ROOT=$HOME/nuodb/NuoSqlApi/NuoSqlApi-1.0.0-Linux .
 make
-sudo cp libphp_pdo_nuodb.so /usr/local/lib/php/extensions/debug-non-zts-20090626/php_pdo_nuodb.so
+sudo cp libphp_pdo_nuodb.so /usr/local/lib/php/extensions/debug-zts-20090626/php_pdo_nuodb.so
 php tests/simpletest.php

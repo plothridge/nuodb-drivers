@@ -21,7 +21,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
-				<Option parameters="-c $HOME/php_debug.ini tests/prepared_statements.php" />
+				<Option parameters="-c $HOME/php_debug.ini tests/simple.php" />
 				<Option host_application="/usr/local/bin/php" />
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
@@ -29,7 +29,7 @@
 					<Add option="-g" />
 				</Compiler>
 				<ExtraCommands>
-					<Add after="copy_php_extension libphp_pdo_nuodb.so" />
+					<Add after="cp libphp_pdo_nuodb.so /usr/local/lib/php/extensions/debug-zts-20090626/php_pdo_nuodb.so" />
 				</ExtraCommands>
 				<MakeCommands>
 					<Build command="$make -f $makefile" />
@@ -60,6 +60,7 @@
 			<Add option="-fexceptions" />
 		</Compiler>
 		<Unit filename="config.h" />
+		<Unit filename="main.cpp" />
 		<Unit filename="nuodb_driver.cpp" />
 		<Unit filename="nuodb_statement.cpp" />
 		<Unit filename="pdo_nuodb.cpp" />
