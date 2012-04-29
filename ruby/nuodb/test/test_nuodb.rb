@@ -51,45 +51,72 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   def test_version()
-    @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @schema, @username, @password
-    @dmd = @con.getMetaData
-    assert_match /^1\./, @dmd.getDatabaseVersion
+    env = Nuodb::SqlEnvironment.createSqlEnvironment
+    con = env.createSqlConnection @database, @schema, @username, @password
+    dmd = con.getMetaData
+    assert_match /^1\./, dmd.getDatabaseVersion
   end
 
   def test_select_from_dual()
-    @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @schema, @username, @password
-    @stmt = @con.createStatement
-    assert_not_nil @stmt
-    @stmt.execute "select 1 from dual"
+    env = Nuodb::SqlEnvironment.createSqlEnvironment
+    con = env.createSqlConnection @database, @schema, @username, @password
+    stmt = con.createStatement
+    assert_not_nil stmt
+    stmt.execute "select 1 from dual"
   end
 
   def test_auto_commit_flag()
-    @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @schema, @username, @password
-    assert @con.hasAutoCommit
-    @con.setAutoCommit false
-    assert !@con.hasAutoCommit
-    @con.setAutoCommit true
-    assert @con.hasAutoCommit
+    env = Nuodb::SqlEnvironment.createSqlEnvironment
+    con = env.createSqlConnection @database, @schema, @username, @password
+    assert con.hasAutoCommit
+    con.setAutoCommit false
+    assert !con.hasAutoCommit
+    con.setAutoCommit true
+    assert con.hasAutoCommit
   end
 
   def test_statement()
-    @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @schema, @username, @password
-    @stmt = @con.createStatement
-    assert_not_nil @stmt
-    @stmt.execute "drop table test_nuodb if exists"
-    @stmt.execute <<EOS
+    env = Nuodb::SqlEnvironment.createSqlEnvironment
+    con = env.createSqlConnection @database, @schema, @username, @password
+    stmt = con.createStatement
+    assert_not_nil stmt
+    stmt.execute "drop table test_nuodb if exists"
+    stmt.execute <<EOS
 create table test_nuodb (
   i integer,
   d double,
   s string,
   primary key (i))
 EOS
+
+    query = con.createStatement
+    assert_not_nil query
+
+    result = query.executeQuery "select * from test_nuodb"
+    assert_not_nil result
+
+    assert !result.next
+
+    assert_equal 3, result.getColumnCount
+
+    meta1 = result.getMetaData 1
+    assert_not_nil meta1
+    assert_equal "I", meta1.getColumnName
+    assert_equal :SQL_INTEGER, meta1.getType
+
+    meta2 = result.getMetaData 2
+    assert_not_nil meta2
+    assert_equal "D", meta2.getColumnName
+    assert_equal :SQL_DOUBLE, meta2.getType
+
+    meta3 = result.getMetaData 3
+    assert_not_nil meta3
+    assert_equal "S", meta3.getColumnName
+    assert_equal :SQL_STRING, meta3.getType
+
     # TODO SqlConnection.createPreparedStatement
     # TODO SqlStatement.executeQuery
+
   end
 
   # TODO SqlConnection.commit
