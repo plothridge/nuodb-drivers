@@ -17,9 +17,12 @@ INCLUDE_DIRECTORIES (
 
 set (NuoDBPhpPdoSources
     nuodb_driver.cpp
-    pdo_nuodb.c
+    nuodb_statement.cpp
+    pdo_nuodb.cpp
+    php_pdo_nuodb_cpp_int.cpp
     php_pdo_nuodb.h
     php_pdo_nuodb_int.h
+    php_pdo_nuodb_cpp_int.h
 )
 
 IF(CMAKE_GENERATOR MATCHES "Unix Makefile")
@@ -32,8 +35,8 @@ IF(CMAKE_GENERATOR MATCHES "Unix Makefile")
    add_library(NuoSqlApi SHARED IMPORTED)
    set_property(TARGET NuoSqlApi PROPERTY IMPORTED_LOCATION ${NUOSQLAPI_ROOT}/lib/libNuoSqlApi.so)
    set_property(TARGET NuoSqlApi PROPERTY IMPORTED_IMPLIB ${NUOSQLAPI_ROOT}/lib/libNuoSqlApi.so)
-   add_library(pdo_nuodb SHARED ${NuoDBPhpPdoSources})
-   target_link_libraries(pdo_nuodb NuoSqlApi )
+   add_library(php_pdo_nuodb SHARED ${NuoDBPhpPdoSources})
+   target_link_libraries(php_pdo_nuodb NuoSqlApi )
 ENDIF(CMAKE_GENERATOR MATCHES "Unix Makefile")
 
 IF(CMAKE_GENERATOR MATCHES "Visual Studio 7" OR
@@ -47,8 +50,8 @@ IF(CMAKE_GENERATOR MATCHES "Visual Studio 7" OR
    add_library(nuoremote SHARED IMPORTED)
    set_property(TARGET nuoremote PROPERTY IMPORTED_LOCATION ${NUODB_ROOT}/bin/NuoRemote.dll)
    set_property(TARGET nuoremote PROPERTY IMPORTED_IMPLIB ${NUODB_ROOT}/lib/NuoRemote.lib)
-   add_library(pdo_nuodb SHARED ${NuoDBPhpSources})
-   target_link_libraries(pdo_nuodb nuoremote php5ts)
+   add_library(php_pdo_nuodb SHARED ${NuoDBPhpSources})
+   target_link_libraries(php_pdo_nuodb nuoremote php5ts)
 ENDIF(CMAKE_GENERATOR MATCHES "Visual Studio 7" OR
       CMAKE_GENERATOR MATCHES "Visual Studio 8" OR
       CMAKE_GENERATOR MATCHES "Visual Studio 9" OR

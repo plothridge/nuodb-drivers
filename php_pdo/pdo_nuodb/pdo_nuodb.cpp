@@ -30,14 +30,16 @@
 #include "config.h"
 #endif
 
+extern "C" {
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "ext/pdo/php_pdo.h"
 #include "ext/pdo/php_pdo_driver.h"
 #include "php_pdo_nuodb.h"
+}
 
-#include "php_pdb_nuodb_cpp_int.h"
+#include "php_pdo_nuodb_cpp_int.h"
 #include "php_pdo_nuodb_int.h"
 
 
@@ -53,7 +55,7 @@ static int le_pdo_nuodb;
  * Every user visible function must have an entry in pdo_nuodb_functions[].
  */
 const zend_function_entry pdo_nuodb_functions[] = {
-	PHP_FE(confirm_pdo_nuodb_compiled,	NULL)		/* For testing, remove later. */
+	PHP_FE(confirm_pdo_nuodb_compiled,	NULL)		/* TODO: For testing, remove later. */
 	PHP_FE_END	/* Must be the last line in pdo_nuodb_functions[] */
 };
 /* }}} */
@@ -161,6 +163,7 @@ PHP_RSHUTDOWN_FUNCTION(pdo_nuodb)
 PHP_MINFO_FUNCTION(pdo_nuodb)
 {
 	php_info_print_table_start();
+	// TODO: we should display version of the driver and version of NuoDB
 	php_info_print_table_header(2, "PDO Driver for NuoDB", "enabled");
 	php_info_print_table_end();
 
@@ -192,18 +195,3 @@ PHP_FUNCTION(confirm_pdo_nuodb_compiled)
 	RETURN_STRINGL(strg, len, 0);
 }
 /* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and
-   unfold functions in source code. See the corresponding marks just before
-   function definition, where the functions purpose is also documented. Please
-   follow this convention for the convenience of others editing your code.
-*/
-
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */
