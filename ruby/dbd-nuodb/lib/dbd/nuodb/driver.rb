@@ -26,9 +26,17 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+require 'nuodb'
+require 'pp' # TODO TEMPORARY
+
 module DBI::DBD::NuoDB
 
   class Driver < DBI::BaseDriver
+    # TODO include Util
+
+    def initialize
+      super("0.4.0")
+    end
 
     def default_user
       ['', nil]
@@ -37,7 +45,13 @@ module DBI::DBD::NuoDB
     #
     # Connect to the database. DBD Required.
     #
-    def connect(dbname, user, auth, attr)
+    def connect(dbname, username, password, attr)
+      hash = DBI::Utils.parse_params(dbname)
+      database = hash['database'] + '@' + hash['host']
+      schema = hash['database']
+      @enviroment = Nuodb::SqlEnvironment.createSqlEnvironment
+      handle = @enviroment.createSqlConnection database, schema, username, password
+      return Database.new handle, attr
     end
 
     #

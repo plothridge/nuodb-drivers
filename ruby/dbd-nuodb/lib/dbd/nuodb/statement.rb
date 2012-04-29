@@ -30,46 +30,94 @@ module DBI::DBD::NuoDB
 
   class Statement < DBI::BaseStatement
 
+    def initialize(stmt)
+      @stmt = stmt
+    end
+
     #
     # Bind a parameter to a statement. DBD Required.
     #
     def bind_param(param, value, attribs)
+      # TODO @stmt.setInteger
+      # TODO @stmt.setDouble
+      # TODO @stmt.setString
     end
 
     #
     # Execute the statement with known binds. DBD Required.
     #
     def execute
+      @result = @stmt.executeQuery
+      @column_info = self.column_info
+      @result
     end
 
     #
     # Close the statement and any result cursors. DBD Required.
     #
     def finish
+      @stmt = nil;
     end
 
     #
     # Fetch the next row in the result set. DBD Required.
     #
     def fetch
+      if @result.next
+        count = @result.getColumnCount
+
+        retval = []
+        for i in 1..count
+          meta = @result.getMetaData(i)
+          type = meta.getType
+          case
+          when type == :SQL_INTEGER
+            retval << @result.getInteger(i)
+          else
+            raise "unknown type #{type} for column #{i}"
+          end
+        end
+        retval
+      else
+        return nil
+      end
     end
 
     #
     # Provides result-set column information as an array of hashes. DBD Required.
     #
     def column_info
+      retval = []
+      count = @result.getColumnCount
+      for i in 1..count
+        meta = @result.getMetaData i
+        retval << {
+          'name' => 'DUMMY', # meta.getColumnName,
+          'sql_type'  => meta.getType
+          # TODO 'type_name' => '???',
+          # TODO 'precision' => '???',
+          # TODO 'scale'     => '???',
+          # TODO 'nullable'  => '???',
+          # TODO 'indexed'   => '???',
+          # TODO 'primary'   => '???',
+          # TODO 'unique'    => '???'
+        }
+      end
+      retval
     end
 
     #
     # Optional
     #
     def fetch_scroll(direction, offset)
+      raise NotImplementedError
     end
 
     #
     # Optional
     #
     def []=(attr, value)
+      raise NotImplementedError
     end
 
   end

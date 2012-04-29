@@ -33,18 +33,22 @@ rescue LoadError
   require 'rake'
 end
 
+
 require 'rubygems/package_task'
 require 'hoe'
 
-HOE = Hoe.spec 'nuodb' do
+HOE = Hoe.spec 'dbd-nuodb' do
   self.author = ['NuoDB, Inc.']
   self.email = ['info@nuodb.com']
   self.need_tar = false
   self.need_zip = false
 
-  self.test_globs = ['test/ts_dbd.rb']
+  # TODO self.test_globs = [ 'test/ts_dbd.rb' ];
+  self.test_globs = [ 'test/simple.rb' ];
 
   spec_extras[:required_ruby_version] = Gem::Requirement.new('>= 1.8.6')
+
+  extra_deps << ['nuodb', '> 1.0.0']
 
   extra_dev_deps << ['rake-compiler', "~> 0.7.0"]
 end
@@ -56,3 +60,4 @@ end
 
 desc "Generate or update the standalone gemspec file for the project"
 task :gemspec => ["#{HOE.spec.name}.gemspec"]
+

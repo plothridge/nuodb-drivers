@@ -30,10 +30,15 @@ module DBI::DBD::NuoDB
 
   class Database < DBI::BaseDatabase
 
+    def initialize(conn, attr)
+      super
+      @conn = conn
+    end
+
     # REQUIRED METHODS TO IMPLEMENT
 
     def disconnect
-      raise NotImplementedError
+      @conn = nil # TODO do we need an explicit disconnect method?
     end
 
     def ping
@@ -49,7 +54,8 @@ module DBI::DBD::NuoDB
     end
 
     def prepare(statement)
-      raise NotImplementedError
+      stmt = @conn.createPreparedStatement statement
+      return Statement.new stmt
     end
 
     # OPTIONAL METHODS TO IMPLEMENT
