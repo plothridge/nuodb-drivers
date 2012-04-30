@@ -42,7 +42,6 @@ sub connect {
 	$private_attr->{schema} = $attr->{schema} if defined $attr->{schema};
 
 	my $dbh = DBI::_new_dbh($drh, $attr, $private_attr) or return undef;
-
 	DBD::NuoDB::db::_login($dbh, $dbname, $user, $auth, $attr) or return undef;
 
 	return $dbh;
@@ -70,9 +69,5 @@ sub prepare {
 
 	return $sth;
 }
-
-package DBD::NuoDB::st;
-use strict;
-use warnings;
 
 1;

@@ -52,7 +52,7 @@ int      dbd_bind_ph  _((SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV s
 
 MODULE = DBD::NuoDB	PACKAGE = DBD::NuoDB
 
-INCLUDE: NuoDB.knowngood.xsi
+INCLUDE: NuoDB.knowngood.xsi.h
 
 MODULE = DBD::NuoDB	PACKAGE = DBD::NuoDB
 
