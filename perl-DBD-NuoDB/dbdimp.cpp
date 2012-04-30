@@ -53,13 +53,19 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 	return TRUE;
 }
 
-int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
+int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 {
 	D_imp_dbh_from_sth;
 
+	char *sql;
+	sql = SvPV_nolen(statement);
+
 	try {
-		imp_sth->pstmt = imp_dbh->conn->prepareStatement(statement);
+		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql);
 		DBIc_IMPSET_on(imp_sth);
+
+		NuoDB::ParameterMetaData* md = imp_sth->pstmt->getParameterMetaData();
+		DBIc_NUM_PARAMS(imp_sth) = md->getParameterCount();
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
 		return FALSE;
@@ -128,12 +134,12 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 			(void) SvOK_off(sv);
 		} else {
 			sv_setpvn(sv, str, strlen(str));
+			sv_utf8_decode(sv);
 		}
 	}
 	
 	return av;
 }
-
 
 void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
 
@@ -149,7 +155,6 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth)
 {
 	return TRUE;
 }
-
 
 int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
@@ -215,17 +220,8 @@ int dbd_st_STORE_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv)
 
 int dbd_st_blob_read (SV *sth, imp_sth_t *imp_sth, int field, long offset, long len, SV *destrv, long destoffset)
 {
-	/* quell warnings */
-	sth= sth;
-	imp_sth=imp_sth;
-	field= field;
-	offset= offset;
-	len= len;
-	destrv= destrv;
-	destoffset= destoffset;
 	return FALSE;
 }
-
 
 int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
@@ -236,7 +232,35 @@ int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 
 int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type, SV *attribs, int is_inout, IV maxlen)
 {
-	croak("Bind parameters are not supported.");
+	STRLEN value_len;
+
+	if (is_inout)
+		croak("Can't bind ``lvalue'' mode.");
+
+	if (!imp_sth)
+		return FALSE;
+
+	sv_utf8_decode(value);
+
+	char * value_str = SvPV(value, value_len);
+
+	try {
+		if (memchr(value_str, 0, value_len)) {
+//			NuoDB::Blob* blob = imp_dbh->conn->createBlob();
+//			blob->setBytes(value_len, (const unsigned char*) value_str);
+//			imp_sth->pstmt->setBlob(SvIV(param), blob);
+//			blob->release();
+
+			imp_sth->pstmt->setBytes(SvIV(param), value_len, value_str);
+		} else {
+			imp_sth->pstmt->setString(SvIV(param), value_str);
+		}
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
