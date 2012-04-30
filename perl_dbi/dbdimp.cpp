@@ -28,6 +28,7 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		return FALSE;
 
 	NuoDB::Connection *conn = createConnection();
+	imp_dbh->conn = conn;
 
 	NuoDB::Properties *properties = conn->allocProperties();
 	
@@ -42,14 +43,10 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		
 	try {
 		conn->openDatabase(SvPV_nolen(dbname), properties);
-		imp_dbh->conn = conn;
-
-		DBIc_ACTIVE_on(imp_dbh);
                 DBIc_IMPSET_on(imp_dbh);
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
 		conn->close();
-		imp_dbh->conn = NULL;
 		return FALSE;
 	}
 
@@ -60,10 +57,8 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 {
 	D_imp_dbh_from_sth;
 
-	if (!imp_dbh->conn)
-		return FALSE;
-
-	char *sql = SvPV_nolen(statement);
+	char *sql;
+	sql = SvPV_nolen(statement);
 
 	try {
 		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql);
@@ -81,13 +76,25 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 
 int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 {
+	SV **statement;
+	STRLEN slen;
+
+	statement = hv_fetch((HV*) SvRV(sth), "Statement", 9, FALSE);
+	char * str_ptr = SvPV(*statement, slen);
+
 	try {
-		DBIc_ACTIVE_off(imp_sth);
-		imp_sth->rs = NULL;
-		if (imp_sth->pstmt->execute()) {
-			imp_sth->rs = imp_sth->pstmt->getResultSet();
+		if (
+			!strstr(str_ptr, "SELECT") &&
+			!strstr(str_ptr, "select")
+		) {
+			DBIc_ACTIVE_off(imp_sth);
+			imp_sth->rs = NULL;
+			return imp_sth->pstmt->execute();
+		} else {
+			NuoDB::ResultSet *rs = imp_sth->pstmt->executeQuery();
+			imp_sth->rs = rs;
 	
-			NuoDB::ResultSetMetaData *md = imp_sth->rs->getMetaData();
+			NuoDB::ResultSetMetaData *md = rs->getMetaData();
 			DBIc_NUM_FIELDS(imp_sth) = md->getColumnCount();
 		}
 	} catch (NuoDB::SQLException& xcp) {
@@ -134,16 +141,12 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 	return av;
 }
 
-void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
-{
-	try {
-		if (imp_sth->rs)
-			imp_sth->rs->close();
+void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
 
-		imp_sth->pstmt->close();
-	} catch (NuoDB::SQLException& xcp) {
-		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
-	}
+	if (imp_sth->rs)
+		imp_sth->rs->close();
+
+	imp_sth->pstmt->close();
 
 	DBIc_IMPSET_off(imp_sth);
 }
@@ -196,18 +199,12 @@ int dbd_db_STORE_attrib(SV* dbh, imp_dbh_t* imp_dbh, SV* keysv, SV* valuesv)
 	bool bool_value = SvTRUE(valuesv);
 
 	if (kl==10 && strEQ(key, "AutoCommit")) {
-		try {
-			imp_dbh->conn->setAutoCommit(bool_value);
-			DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
-		} catch (NuoDB::SQLException& xcp) {
-			do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
-			return FALSE;
-		}
+		imp_dbh->conn->setAutoCommit(bool_value);
+		DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
+		return TRUE;
 	} else {
 		return FALSE;
 	}
-
-	return TRUE;
 }
 
 SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
@@ -228,15 +225,7 @@ int dbd_st_blob_read (SV *sth, imp_sth_t *imp_sth, int field, long offset, long 
 
 int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	if (!imp_dbh->conn)
-		return FALSE;
-
-	try {
-		imp_dbh->conn->close();
-	} catch (NuoDB::SQLException& xcp) {
-		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
-		return FALSE;
-	}
+	imp_dbh->conn->close();
 
 	return TRUE;
 }
@@ -250,6 +239,8 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 
 	if (!imp_sth)
 		return FALSE;
+
+	sv_utf8_decode(value);
 
 	char * value_str = SvPV(value, value_len);
 
@@ -274,8 +265,7 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 
 void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	imp_dbh->conn = NULL;
-	DBIc_IMPSET_off(imp_dbh);
+	imp_dbh->conn->release();
 }
 
 void do_error(SV* h, int rc, char* what)
@@ -285,9 +275,5 @@ void do_error(SV* h, int rc, char* what)
         sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);
 
         SV *errstr = DBIc_ERRSTR(imp_xxh);
-
-	SvUTF8_on(errstr);
         sv_setpv(errstr, what);
-	sv_utf8_decode(errstr);
-
 }
