@@ -1,10 +1,10 @@
 /****************************************************************************
  * Copyright (c) 2012, NuoDB, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -13,7 +13,7 @@
  *     * Neither the name of NuoDB, Inc. nor the names of its contributors may
  *       be used to endorse or promote products derived from this software
  *       without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,12 +30,16 @@
 #include "config.h"
 #endif
 
+extern "C" {
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "ext/pdo/php_pdo.h"
 #include "ext/pdo/php_pdo_driver.h"
 #include "php_pdo_nuodb.h"
+}
+
+#include "php_pdo_nuodb_cpp_int.h"
 #include "php_pdo_nuodb_int.h"
 
 
@@ -51,7 +55,7 @@ static int le_pdo_nuodb;
  * Every user visible function must have an entry in pdo_nuodb_functions[].
  */
 const zend_function_entry pdo_nuodb_functions[] = {
-	PHP_FE(confirm_pdo_nuodb_compiled,	NULL)		/* For testing, remove later. */
+	PHP_FE(confirm_pdo_nuodb_compiled,	NULL)		/* TODO: For testing, remove later. */
 	PHP_FE_END	/* Must be the last line in pdo_nuodb_functions[] */
 };
 /* }}} */
@@ -116,7 +120,7 @@ static void php_pdo_nuodb_init_globals(zend_pdo_nuodb_globals *pdo_nuodb_globals
  */
 PHP_MINIT_FUNCTION(pdo_nuodb)
 {
-	/* If you have INI entries, uncomment these lines 
+	/* If you have INI entries, uncomment these lines
 	REGISTER_INI_ENTRIES();
 	*/
 	php_pdo_register_driver(&pdo_nuodb_driver);
@@ -159,6 +163,7 @@ PHP_RSHUTDOWN_FUNCTION(pdo_nuodb)
 PHP_MINFO_FUNCTION(pdo_nuodb)
 {
 	php_info_print_table_start();
+	// TODO: we should display version of the driver and version of NuoDB
 	php_info_print_table_header(2, "PDO Driver for NuoDB", "enabled");
 	php_info_print_table_end();
 
@@ -190,18 +195,3 @@ PHP_FUNCTION(confirm_pdo_nuodb_compiled)
 	RETURN_STRINGL(strg, len, 0);
 }
 /* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and 
-   unfold functions in source code. See the corresponding marks just before 
-   function definition, where the functions purpose is also documented. Please 
-   follow this convention for the convenience of others editing your code.
-*/
-
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */

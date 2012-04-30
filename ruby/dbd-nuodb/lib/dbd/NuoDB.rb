@@ -30,7 +30,7 @@ begin
   require 'rubygems'
   gem 'nuodb'
   gem 'dbi'
-rescue LoadError => e
+rescue LoadError
 end
 
 require 'dbi'
