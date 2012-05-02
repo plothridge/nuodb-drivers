@@ -1,7 +1,7 @@
 use ExtUtils::MakeMaker;
 use DBI::DBD;
 
-my $nuodb_includes = '/home/philips/git/nimbusdb/Remote';
+my $nuodb_includes = '/opt/nuodb/include';
 
 WriteMakefile(
 	dbd_edit_mm_attribs({
@@ -27,15 +27,5 @@ WriteMakefile(
 		},
 		LD		=> 'g++',
 		CC		=> 'g++'
-	}
-	)
+	})
 );
-
-package MY;
-
-sub postamble { return main::dbd_postamble(@_); }
-
-#sub libscan {
-#	my ($self, $path) = @_;
-#	($path =~ m/\~$/) ? undef : $path;
-#}
