@@ -130,7 +130,6 @@ static long nuodb_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRM
 {
 	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
     try {
-
         PdoNuoDbStatement *stmt = H->db->createStatement(sql);
         stmt->execute();
     } catch(...) {
@@ -227,7 +226,7 @@ static int nuodb_alloc_prepare_stmt(pdo_dbh_t *dbh, const char *sql, long sql_le
 
     *s = NULL;
 
-	/* allow SQL statements up to 64k, so bail if it doesn't fit */
+	/* TODO: Figure out the max sql statement length in NuoDB - 64k? for now */
 	if (sql_len > SHORT_MAX) {
 		strcpy(dbh->error_code, "01004");
 		return 0;
@@ -299,7 +298,6 @@ static int nuodb_handle_set_attribute(pdo_dbh_t *dbh, long attr, zval *val TSRML
 
 	switch (attr) {
 		case PDO_ATTR_AUTOCOMMIT:
-
 			convert_to_boolean(val);
 
 			/* ignore if the new value equals the old one */
@@ -344,7 +342,6 @@ static int nuodb_handle_get_attribute(pdo_dbh_t *dbh, long attr, zval *val TSRML
 			return 1;
 
 		case PDO_ATTR_CONNECTION_STATUS:
-			// ZVAL_BOOL(val, !isc_version(&H->db, nuodb_info_cb, NULL));
 			return 1;
 
 		case PDO_ATTR_CLIENT_VERSION:
@@ -422,11 +419,9 @@ static int pdo_nuodb_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_
     try {
         H->db = new PdoNuoDbHandle(&optionsArray);
         H->db->createConnection();
-
         dbh->methods = &nuodb_methods;
         dbh->native_case = PDO_CASE_NATURAL;  // TODO: the value should reflect how the database returns the names of the columns in result sets. If the name matches the case that was used in the query, set it to PDO_CASE_NATURAL (this is actually the default). If the column names are always returned in upper case, set it to PDO_CASE_UPPER. If the column names are always returned in lower case, set it to PDO_CASE_LOWER. The value you set is used to determine if PDO should perform case folding when the user sets the PDO_ATTR_CASE attribute.
         dbh->alloc_own_columns = 1;  // if true, the driver requires that memory be allocated explicitly for the columns that are returned
-
         ret = 1;
     } catch(ErrorCodeException &e) {
         zend_throw_exception_ex(php_pdo_get_exception(), e.errorCode() TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
