@@ -61,16 +61,18 @@ module DBI::DBD::NuoDB
     # OPTIONAL METHODS TO IMPLEMENT
 
     def commit
-      raise NotImplementedError
+      @conn.commit
     end
 
     def rollback
-      raise NotImplementedError
+      @conn.rollback
     end
 
     # OTHER METHODS
 
-    def do(stmt, *bindvars)
+    def do(statement, *bindvars)
+      stmt = @conn.createPreparedStatement statement
+      stmt.execute
     end
 
     #
