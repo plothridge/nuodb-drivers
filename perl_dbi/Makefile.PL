@@ -1,7 +1,18 @@
 use ExtUtils::MakeMaker;
 use DBI::DBD;
+use Getopt::Long;
+use warnings;
 
-my $nuodb_includes = '/opt/nuodb/include';
+my ($nuodb_includes, $nuodb_libs);
+my $opt_result = GetOptions (
+	'nuodb-includes=s' => \$nuodb_includes,
+	'nuodb-libs=s' => \$nuodb_libs
+);
+
+$nuodb_includes = '/opt/nuodb/include' if not defined $nuodb_includes;
+$nuodb_libs = '/opt/nuodb/lib' if not defined $nuodb_libs;
+
+print "Using: \$nuodb_includes = $nuodb_includes ; \$nuodb_libs = $nuodb_libs\n";
 
 WriteMakefile(
 	dbd_edit_mm_attribs({
@@ -12,6 +23,7 @@ WriteMakefile(
 		'C'		=> ['dbdimp.cpp', 'NuoDB.c'],
 		'XS'		=> {'NuoDB.xs' => 'NuoDB.c'},
 		'OBJECT'	=> 'dbdimp.o NuoDB.o',
+		'LIBS'		=> ['-L'.$nuodb_libs.' -lNuoRemote'],
 		'dist'		=> {
 				'SUFFIX'   => '.gz',
 				'COMPRESS' => 'gzip -9f'
