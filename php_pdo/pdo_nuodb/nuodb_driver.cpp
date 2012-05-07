@@ -64,21 +64,30 @@ void _nuodb_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, char const *file, long line 
 
 #define RECORD_ERROR(dbh) _nuodb_error(dbh, NULL, __FILE__, __LINE__ TSRMLS_CC)
 
-/* called by PDO to close a db handle */
-static int nuodb_handle_closer(pdo_dbh_t *dbh TSRMLS_DC) /* {{{ */
-{
+static int _commit_if_auto(pdo_dbh_t *dbh) {
 	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
-	if (dbh->in_txn) {
+    if (H == NULL) return 0;
+   	if (dbh->in_txn) {
 		if (dbh->auto_commit) {
 		    H->db->commit();
+		    return 1;
 		} else {
 		    H->db->rollback();
 		}
 	}
+    return 0;
+}
+
+/* called by PDO to close a db handle */
+static int nuodb_handle_closer(pdo_dbh_t *dbh TSRMLS_DC) /* {{{ */
+{
+	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
+	if (H == NULL) return 0;
+	_commit_if_auto(dbh);
     H->db->closeConnection();
     delete H->db;
 	pefree(H, dbh->is_persistent);
-	return 0;
+	return 1;
 }
 /* }}} */
 
@@ -129,13 +138,18 @@ static int nuodb_handle_preparer(pdo_dbh_t *dbh, const char *sql, long sql_len, 
 static long nuodb_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRMLS_DC) /* {{{ */
 {
 	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
+	int in_txn_state = dbh->in_txn;
     try {
         PdoNuoDbStatement *stmt = H->db->createStatement(sql);
+        dbh->in_txn = 1;
         stmt->execute();
+        _commit_if_auto(dbh);
     } catch(...) {
+        dbh->in_txn = in_txn_state;
         return -1;
     }
-	return 0;
+    dbh->in_txn = in_txn_state;
+	return 1;
 }
 /* }}} */
 
@@ -226,8 +240,8 @@ static int nuodb_alloc_prepare_stmt(pdo_dbh_t *dbh, const char *sql, long sql_le
 
     *s = NULL;
 
-	/* TODO: Figure out the max sql statement length in NuoDB - 64k? for now */
-	if (sql_len > SHORT_MAX) {
+	/* There is no max sql statement length in NuoDB - but use 1Mib for now */
+	if (sql_len > 0x100000) {
 		strcpy(dbh->error_code, "01004");
 		return 0;
 	}
