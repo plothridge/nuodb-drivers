@@ -19,10 +19,6 @@ The following has not been implemented yet:
 
 ## EXAMPLE ##
 
-```bash
-export LD_PRELOAD=/opt/nuodb/lib64/libNuoRemote.so
-```
-
 ```perl
 use DBI;
 my $dbh = DBI->connect("dbi:NuoDB:".$database.'@'.$host':'.$port, $username, $password, {schema => $schema});
@@ -42,8 +38,7 @@ sudo perl -MCPAN -e 'force install DBI'
 ## BUILDING AND INSTALLATION ##
 
 ```bash
-export LD_PRELOAD=/opt/nuodb/lib64/libNuoRemote.so
-perl Makefile.PL
+perl Makefile.PL [--nuodb-libs=...] [--nuodb-includes=...]
 make test
 sudo make install
 ```
