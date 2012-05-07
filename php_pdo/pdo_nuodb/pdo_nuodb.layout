@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="nuodb_driver.cpp" open="1" top="0" tabpos="5">
-		<Cursor position="4533" topLine="120" />
+	<File name="config.h" open="1" top="0" tabpos="8">
+		<Cursor position="1264" topLine="27" />
 	</File>
-	<File name="nuodb_statement.cpp" open="1" top="1" tabpos="10">
-		<Cursor position="6333" topLine="129" />
+	<File name="nuodb_driver.cpp" open="1" top="0" tabpos="2">
+		<Cursor position="12381" topLine="405" />
 	</File>
-	<File name="pdo_nuodb.cpp" open="1" top="0" tabpos="7">
-		<Cursor position="2006" topLine="7" />
+	<File name="nuodb_statement.cpp" open="1" top="0" tabpos="7">
+		<Cursor position="3072" topLine="65" />
 	</File>
-	<File name="php_pdo_nuodb_cpp_int.cpp" open="1" top="0" tabpos="8">
-		<Cursor position="6695" topLine="209" />
+	<File name="pdo_nuodb.cpp" open="1" top="0" tabpos="4">
+		<Cursor position="2418" topLine="40" />
 	</File>
-	<File name="php_pdo_nuodb_cpp_int.h" open="1" top="0" tabpos="9">
-		<Cursor position="1716" topLine="22" />
+	<File name="php_pdo_nuodb.h" open="1" top="0" tabpos="9">
+		<Cursor position="0" topLine="0" />
 	</File>
-	<File name="php_pdo_nuodb_int.h" open="1" top="0" tabpos="6">
-		<Cursor position="2788" topLine="46" />
+	<File name="php_pdo_nuodb_cpp_int.cpp" open="1" top="1" tabpos="5">
+		<Cursor position="2510" topLine="62" />
+	</File>
+	<File name="php_pdo_nuodb_cpp_int.h" open="1" top="0" tabpos="6">
+		<Cursor position="1715" topLine="0" />
+	</File>
+	<File name="php_pdo_nuodb_int.h" open="1" top="0" tabpos="3">
+		<Cursor position="2245" topLine="48" />
 	</File>
 </CodeBlocks_layout_file>

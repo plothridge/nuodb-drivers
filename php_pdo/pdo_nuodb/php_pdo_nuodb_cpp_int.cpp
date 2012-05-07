@@ -77,7 +77,6 @@ PdoNuoDbHandle::~PdoNuoDbHandle()
 }
 
 void PdoNuoDbHandle::deleteOptions() {
-    // TODO: Fix this later
     if (_opts == NULL) return;
     for (int i=0; i<4; i++) {
         if (_opt_arr[i].option != NULL) {
@@ -95,7 +94,6 @@ void PdoNuoDbHandle::deleteOptions() {
 
 void PdoNuoDbHandle::setOptions(SqlOptionArray *options)
 {
-    // TODO: Fix this later
     deleteOptions();
     _opts = new SqlOptionArray;
     _opts->count = 4;

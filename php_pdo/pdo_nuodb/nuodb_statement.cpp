@@ -93,6 +93,7 @@ static int nuodb_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC) /* {{{ */
     stmt->row_count = affected_rows;
 
     // TODO: commit here?
+    H->db->commit();
 	S->exhausted = !S->cursor_open;
 
 	return 1;
