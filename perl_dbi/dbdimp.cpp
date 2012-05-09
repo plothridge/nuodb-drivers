@@ -43,6 +43,7 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		
 	try {
 		conn->openDatabase(SvPV_nolen(dbname), properties);
+//		DBIc_ACTIVE_on(imp_dbh);
                 DBIc_IMPSET_on(imp_dbh);
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
@@ -57,8 +58,8 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 {
 	D_imp_dbh_from_sth;
 
-	char *sql;
-	sql = SvPV_nolen(statement);
+	sv_utf8_decode(statement);
+	char *sql = SvPV_nolen(statement);
 
 	try {
 		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql);
@@ -76,25 +77,13 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 
 int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 {
-	SV **statement;
-	STRLEN slen;
-
-	statement = hv_fetch((HV*) SvRV(sth), "Statement", 9, FALSE);
-	char * str_ptr = SvPV(*statement, slen);
-
 	try {
-		if (
-			!strstr(str_ptr, "SELECT") &&
-			!strstr(str_ptr, "select")
-		) {
-			DBIc_ACTIVE_off(imp_sth);
-			imp_sth->rs = NULL;
-			return imp_sth->pstmt->execute();
-		} else {
-			NuoDB::ResultSet *rs = imp_sth->pstmt->executeQuery();
-			imp_sth->rs = rs;
+		DBIc_ACTIVE_off(imp_sth);
+		imp_sth->rs = NULL;
+		if (imp_sth->pstmt->execute()) {
+			imp_sth->rs = imp_sth->pstmt->getResultSet();
 	
-			NuoDB::ResultSetMetaData *md = rs->getMetaData();
+			NuoDB::ResultSetMetaData *md = imp_sth->rs->getMetaData();
 			DBIc_NUM_FIELDS(imp_sth) = md->getColumnCount();
 		}
 	} catch (NuoDB::SQLException& xcp) {
@@ -266,6 +255,7 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 {
 	imp_dbh->conn->release();
+	DBIc_IMPSET_off(imp_dbh);
 }
 
 void do_error(SV* h, int rc, char* what)
@@ -275,5 +265,9 @@ void do_error(SV* h, int rc, char* what)
         sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);
 
         SV *errstr = DBIc_ERRSTR(imp_xxh);
+
+	SvUTF8_on(errstr);
         sv_setpv(errstr, what);
+	sv_utf8_decode(errstr);
+
 }
