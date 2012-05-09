@@ -43,7 +43,7 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		
 	try {
 		conn->openDatabase(SvPV_nolen(dbname), properties);
-//		DBIc_ACTIVE_on(imp_dbh);
+		DBIc_ACTIVE_on(imp_dbh);
                 DBIc_IMPSET_on(imp_dbh);
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
@@ -214,7 +214,8 @@ int dbd_st_blob_read (SV *sth, imp_sth_t *imp_sth, int field, long offset, long 
 
 int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	imp_dbh->conn->close();
+	if (imp_dbh->conn)
+		imp_dbh->conn->close();
 
 	return TRUE;
 }
@@ -254,7 +255,6 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 
 void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	imp_dbh->conn->release();
 	DBIc_IMPSET_off(imp_dbh);
 }
 
