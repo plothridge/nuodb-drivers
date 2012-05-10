@@ -10,17 +10,19 @@ git submodule update --init
 
 export PATH=/usr/local/bin:$PATH
 export NODE_PATH=/usr/local/bin/node
-export NUODB_INCLUDE_DIR=/Users/rbuck/tmp/nuodb-1.1.9999.macosx.x86_64/include
-export NUODB_LIB_DIR=/Users/rbuck/tmp/nuodb-1.1.9999.macosx.x86_64/lib64
+export NUODB_INCLUDE_DIR=/opt/nuodb/include
+export NUODB_LIB_DIR=/opt/nuodb/lib64
 
 node-waf configure && node-waf build
 ```
 
 ## INSTALL ##
 
-Before proceeding with installation, you need to have the 
-[NUOCI instant client] [nci] [libraries] [nci-lib] and [include files] [nci-inc]. 
-In order for the installation script to locate them properly, you'll 
+Before proceeding with installation, you need to have NuoDB installed;
+the examples below assume an installation location of /opt/nuodb, but
+the location may vary.
+
+In order for the installation script to locate dependencies properly, you'll 
 need to set the NUODB_INCLUDE_DIR and NUODB_LIB_DIR environment variables. 
 For example:
 
@@ -39,15 +41,13 @@ Note: Until such time as we properly set ORIGIN/RPATH you may need to explicitly
 set the LD_LIBRARY_PATH:
 
 ```bash
-export LD_LIBRARY_PATH=/home/rbuck/.node_libraries/.npm/db-nuodb/0.1.0/package/build/default/
+export LD_LIBRARY_PATH=/home/user-name/.node_libraries/.npm/db-nuodb/0.1.0/package/build/default/
 ```
 
 Also, verify you have both these files installed to the same directory as the
 nuo_bindings.node file:
 
-
   libNuoRemote.so
-  libNuoSqlApi.so
 
 ## QUICK CHECK ##
 
@@ -95,8 +95,5 @@ new nuodb.Database({
 
 This module is released under the [NUODB License] [license].
 
-[homepage]: http://nodejsdb.org/db-mysql
+[homepage]: https://github.com/nuodb/nuodb-drivers/tree/master/nodejs
 [license]: https://github.com/nuodb/nuodb-drivers/blob/master/LICENSE
-[nci]: http://www.oracle.com/technetwork/database/features/oci/index.html
-[nci-lib]: http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html
-[nci-inc]: http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html
