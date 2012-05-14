@@ -197,12 +197,18 @@ int dbd_db_STORE_attrib(SV* dbh, imp_dbh_t* imp_dbh, SV* keysv, SV* valuesv)
 	bool bool_value = SvTRUE(valuesv);
 
 	if (kl==10 && strEQ(key, "AutoCommit")) {
-		imp_dbh->conn->setAutoCommit(bool_value);
-		DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
-		return TRUE;
+		try {
+			imp_dbh->conn->setAutoCommit(bool_value);
+			DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
+		} catch (NuoDB::SQLException& xcp) {
+			do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
+			return FALSE;
+		}
 	} else {
 		return FALSE;
 	}
+
+	return TRUE;
 }
 
 SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
@@ -223,8 +229,15 @@ int dbd_st_blob_read (SV *sth, imp_sth_t *imp_sth, int field, long offset, long 
 
 int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	if (imp_dbh->conn)
+	if (!imp_dbh->conn)
+		return FALSE;
+
+	try {
 		imp_dbh->conn->close();
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
+		return FALSE;
+	}
 
 	return TRUE;
 }
