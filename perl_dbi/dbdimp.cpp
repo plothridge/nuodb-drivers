@@ -28,7 +28,6 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		return FALSE;
 
 	NuoDB::Connection *conn = createConnection();
-	imp_dbh->conn = conn;
 
 	NuoDB::Properties *properties = conn->allocProperties();
 	
@@ -43,11 +42,14 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		
 	try {
 		conn->openDatabase(SvPV_nolen(dbname), properties);
+		imp_dbh->conn = conn;
+
 		DBIc_ACTIVE_on(imp_dbh);
                 DBIc_IMPSET_on(imp_dbh);
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
 		conn->close();
+		imp_dbh->conn = NULL;
 		return FALSE;
 	}
 
@@ -57,6 +59,9 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 {
 	D_imp_dbh_from_sth;
+
+	if (!imp_dbh->conn)
+		return FALSE;
 
 	sv_utf8_decode(statement);
 	char *sql = SvPV_nolen(statement);
@@ -130,12 +135,16 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 	return av;
 }
 
-void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
+void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
+{
+	try {
+		if (imp_sth->rs)
+			imp_sth->rs->close();
 
-	if (imp_sth->rs)
-		imp_sth->rs->close();
-
-	imp_sth->pstmt->close();
+		imp_sth->pstmt->close();
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
+	}
 
 	DBIc_IMPSET_off(imp_sth);
 }
@@ -255,6 +264,7 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 
 void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 {
+	imp_dbh->conn = NULL;
 	DBIc_IMPSET_off(imp_dbh);
 }
 
