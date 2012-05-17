@@ -36,16 +36,13 @@ use strict;
 use warnings;
 
 sub connect {
-	my ($drh, $dsn, $user, $auth, $attr) = @_;
+	my ($drh, $dbname, $user, $auth, $attr) = @_;
 
-	my $private_attr = {
-		'Name' => $dsn
-	};
-
+	my $private_attr = {};
 	$private_attr->{schema} = $attr->{schema} if defined $attr->{schema};
 
-	my $dbh = DBI::_new_dbh($drh, {}, $private_attr) or return undef;
-	DBD::NuoDB::db::_login($dbh, $dsn, $user, $auth) or return undef;
+	my $dbh = DBI::_new_dbh($drh, $attr, $private_attr) or return undef;
+	DBD::NuoDB::db::_login($dbh, $dbname, $user, $auth, $attr) or return undef;
 
 	return $dbh;
 }

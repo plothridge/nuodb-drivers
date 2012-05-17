@@ -1,11 +1,9 @@
-use strict;
 use Test::More tests => 5;
 use DBI;
 use utf8;
 binmode STDERR, ":utf8";
 
-my $host = defined $ENV{AGENT_PORT} ? "localhost:".$ENV{AGENT_PORT} : "localhost";
-my $dbh = DBI->connect('dbi:NuoDB:test@'.$host, "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
+my $dbh = DBI->connect("dbi:NuoDB:test", "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
 
 my $utf8_string = 'Това е текст';
 my ($utf8_out) = $dbh->selectrow_array("SELECT '$utf8_string' FROM DUAL");
