@@ -63,7 +63,6 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 	if (!imp_dbh->conn)
 		return FALSE;
 
-	sv_utf8_decode(statement);
 	char *sql = SvPV_nolen(statement);
 
 	try {
@@ -251,8 +250,6 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 
 	if (!imp_sth)
 		return FALSE;
-
-	sv_utf8_decode(value);
 
 	char * value_str = SvPV(value, value_len);
 
