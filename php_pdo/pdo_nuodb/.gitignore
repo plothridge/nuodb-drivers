@@ -2,3 +2,8 @@ CMakeCache.txt
 Makefile
 cmake_install.cmake
 CMakeFiles/
+*.cmake
+*.tcl
+*.so
+*.so.*
+Testing/

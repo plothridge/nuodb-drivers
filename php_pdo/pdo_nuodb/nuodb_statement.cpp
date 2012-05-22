@@ -106,7 +106,7 @@ static int nuodb_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC) /* {{{ */
         S->stmt->executeQuery();
         S->cursor_open = S->stmt->hasResultSet();
         stmt->column_count = S->stmt->getColumnCount();
-    } catch(ErrorCodeException &e) {
+    } catch(NuoDB::SQLException &e) {
         RECORD_ERROR(stmt);
         return 0;
     }
@@ -117,7 +117,6 @@ static int nuodb_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC) /* {{{ */
 	S->exhausted = !S->cursor_open;
 
 	return 1;
-
 }
 /* }}} */
 
@@ -200,7 +199,7 @@ static int nuodb_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC) /* {{{ */
             col->param_type = PDO_PARAM_STR;
             break;
         }
-        case PDO_NUODB_SQLTYPE_DATETIME:
+        case PDO_NUODB_SQLTYPE_TIMESTAMP:
         {
             col->param_type = PDO_PARAM_STR;
             break;
@@ -260,7 +259,7 @@ static int nuodb_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr,  /* {{{ *
         {
             break;
         }
-        case PDO_NUODB_SQLTYPE_DATETIME:
+        case PDO_NUODB_SQLTYPE_TIMESTAMP:
         {
             break;
         }

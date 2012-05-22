@@ -38,7 +38,7 @@
 #define PDO_NUODB_SQLTYPE_STRING    5
 #define PDO_NUODB_SQLTYPE_DATE      6
 #define PDO_NUODB_SQLTYPE_TIME      7
-#define PDO_NUODB_SQLTYPE_DATETIME  8
+#define PDO_NUODB_SQLTYPE_TIMESTAMP 8
 
 typedef struct {
   short type;  // datatype 

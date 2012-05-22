@@ -465,9 +465,9 @@ static int pdo_nuodb_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_
         dbh->native_case = PDO_CASE_NATURAL;  // TODO: the value should reflect how the database returns the names of the columns in result sets. If the name matches the case that was used in the query, set it to PDO_CASE_NATURAL (this is actually the default). If the column names are always returned in upper case, set it to PDO_CASE_UPPER. If the column names are always returned in lower case, set it to PDO_CASE_LOWER. The value you set is used to determine if PDO should perform case folding when the user sets the PDO_ATTR_CASE attribute.
         dbh->alloc_own_columns = 1;  // if true, the driver requires that memory be allocated explicitly for the columns that are returned
         ret = 1;
-    } catch(ErrorCodeException &e) {
-        zend_throw_exception_ex(php_pdo_get_exception(), e.errorCode() TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
-				"HY000", e.errorCode(), e.what());
+    } catch(NuoDB::SQLException &e) {
+        zend_throw_exception_ex(php_pdo_get_exception(), e.getSqlcode() TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
+            "HY000", e.getSqlcode(), e.getText());
     }
 
 	for (i = 0; i < sizeof(vars)/sizeof(vars[0]); ++i) {
