@@ -41,6 +41,23 @@
 #define PDO_NUODB_SQLTYPE_DATETIME  8
 
 typedef struct {
+  short type;  // datatype 
+  short scale; // scale factor
+  short col_name_length; // length of column name
+  char  col_name[32];
+  short len; // length of data buffer
+  char *data; // address of data buffer
+} nuo_param; // XSQLVAR
+
+typedef struct {
+  short num_params;  // number of actual params (sqld)
+  short num_alloc;  // number of allocated params (sqln)
+  nuo_param params[1]; // address of first param 
+} nuo_params; //XSQLDA
+
+#define NUO_PARAMS_LENGTH(n)   (sizeof(nuo_params) + (n-1) * sizeof(nuo_param))
+
+typedef struct {
 	/* the connection handle */
     PdoNuoDbHandle *db;
 
@@ -64,6 +81,9 @@ typedef struct {
 	/* the name of the cursor (if it has one) */
 	char name[32];
 
+	/* the type of statement that was issued */
+	char statement_type:8;
+	
 	/* whether EOF was reached for this statement */
 	unsigned exhausted:1;
 
@@ -75,6 +95,15 @@ typedef struct {
 	/* the named params that were converted to ?'s by the driver */
 	HashTable *named_params;
 
+	/* allocated space to convert fields values to other types */
+	char **fetch_buf;
+	
+	/* the input params */
+	nuo_params *in_params;
+	
+	/* the output params */
+	nuo_params *out_params; 
+	
 } pdo_nuodb_stmt;
 
 extern pdo_driver_t pdo_nuodb_driver;

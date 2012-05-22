@@ -61,10 +61,30 @@ static void _release_PdoNuoDbStatement(pdo_nuodb_stmt *S) {
 static int nuodb_stmt_dtor(pdo_stmt_t *stmt TSRMLS_DC) /* {{{ */
 {
     int result = 1;
+    int i;
 	pdo_nuodb_stmt *S = (pdo_nuodb_stmt*)stmt->driver_data;
     _release_PdoNuoDbStatement(S); /* release the statement */
+
+	/* clean up the fetch buffers if they have been used */
+	if (S->fetch_buf != NULL) {
+		for (i = 0; i < S->out_params->num_params; ++i) {
+			if (S->fetch_buf[i] != NULL) {
+				efree(S->fetch_buf[i]);
+			}
+		}
+		efree(S->fetch_buf);
+		S->fetch_buf = NULL;
+	}
+
+
 	zend_hash_destroy(S->named_params);
 	FREE_HASHTABLE(S->named_params);
+
+	/* clean up input params */
+	if (S->in_params != NULL) {
+		efree(S->in_params);
+	}
+
 	efree(S);
 	return result;
 }
@@ -255,8 +275,37 @@ static int nuodb_stmt_param_hook(pdo_stmt_t *stmt, struct pdo_bound_param_data *
 	enum pdo_param_event event_type TSRMLS_DC)
 {
 	pdo_nuodb_stmt *S = (pdo_nuodb_stmt*)stmt->driver_data;
-	// TODO
-	return 0;
+	nuo_params *nuodb_params = param->is_param ? S->in_params : S->out_params;
+	nuo_param *nuodb_param = NULL;
+
+	if (event_type == PDO_PARAM_EVT_FREE) { /* not used */
+		return 1;
+	}
+
+	if (!nuodb_params || param->paramno >= nuodb_params->num_params) {
+		strcpy(stmt->error_code, "HY093");
+		S->H->last_app_error = "Invalid parameter index";
+		return 0;
+	}
+
+	if (param->is_param && param->paramno == -1) {
+	    long *index;
+
+		/* try to determine the index by looking in the named_params hash */
+		if (SUCCESS == zend_hash_find(S->named_params, param->name, param->namelen+1, (void**)&index)) {
+			param->paramno = *index;
+		} else {
+			// TODO: or by looking in the input descriptor
+			// for now, just return an error
+  			strcpy(stmt->error_code, "HY000");
+			S->H->last_app_error = "Unable to determine the parameter index";
+			return 0;
+		}
+
+	}
+
+	return 1;
+
 }
 /* }}} */
 

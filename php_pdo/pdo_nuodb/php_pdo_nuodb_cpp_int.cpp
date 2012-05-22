@@ -64,8 +64,12 @@ void PdoNuoDbHandle::deleteEnvrionment()
     _env = NULL;
 }
 
-PdoNuoDbHandle::PdoNuoDbHandle(SqlOptionArray *options) : _env(NULL), _con(NULL), _last_stmt(NULL)
+PdoNuoDbHandle::PdoNuoDbHandle(SqlOptionArray *options) : _env(NULL), _con(NULL), _opts(NULL), _last_stmt(NULL)
 {
+    for (int i=0; i<4; i++) {
+       _opt_arr[i].option = NULL;
+       _opt_arr[i].extra = NULL;
+    }
     setOptions(options);
 }
 
