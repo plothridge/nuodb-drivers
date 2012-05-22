@@ -1,20 +1,21 @@
+use strict;
 use Test::More tests => 9;
 BEGIN { use_ok('DBD::NuoDB') };
 
 use DBI;
-use strict;
+my $host = defined $ENV{AGENT_PORT} ? "localhost:".$ENV{AGENT_PORT} : "localhost";
 
 # First, autocommit is ON
 
 {
-	my $dbh_autocommit = DBI->connect("dbi:NuoDB:test", "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
+	my $dbh_autocommit = DBI->connect('dbi:NuoDB:test@'.$host, "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
 	ok(defined $dbh_autocommit);
 
 	$dbh_autocommit->do("DROP TABLE IF EXISTS t1");
 	$dbh_autocommit->do("CREATE TABLE t1 (f1 INTEGER)");
 	$dbh_autocommit->do("INSERT INTO t1 VALUES (1),(2)");
 
-	my $dbh_second = DBI->connect("dbi:NuoDB:test", "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
+	my $dbh_second = DBI->connect('dbi:NuoDB:test@'.$host, "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
 	my ($count_second) = $dbh_second->selectrow_array("SELECT COUNT(*) FROM t1");
 	ok($count_second == 2);
 
@@ -29,7 +30,7 @@ use strict;
 # Then, it is OFF
 
 {
-	my $dbh_noautocommit = DBI->connect("dbi:NuoDB:test", "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 0, schema => 'dbi'});
+	my $dbh_noautocommit = DBI->connect('dbi:NuoDB:test@'.$host, "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 0, schema => 'dbi'});
 	ok(defined $dbh_noautocommit);
 
 	$dbh_noautocommit->do("DROP TABLE IF EXISTS t1");
@@ -37,7 +38,7 @@ use strict;
 	$dbh_noautocommit->commit();
 	$dbh_noautocommit->do("INSERT INTO t1 VALUES (1),(2)");
 
-	my $dbh_second = DBI->connect("dbi:NuoDB:test", "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
+	my $dbh_second = DBI->connect('dbi:NuoDB:test@'.$host, "cloud", "user", {PrintError => 1, PrintWarn => 0, AutoCommit => 1, schema => 'dbi'});
 	my ($count_second) = $dbh_second->selectrow_array("SELECT COUNT(*) FROM t1");
 	ok($count_second == 0);
 

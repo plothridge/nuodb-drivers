@@ -2,7 +2,7 @@
 
 var settings = JSON.parse(require('fs').readFileSync('./tests-settings.json','utf8'));
 
-var client = require("./db-oracle");
+var client = require("./db-nuodb");
 var tests = require("./lib/node-db/tests.js").get(function() {
     new client.Database(settings).connect(function(err) {
         if (err) {

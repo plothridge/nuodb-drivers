@@ -28,5 +28,6 @@ struct imp_sth_st {
 #define dbd_st_fetch		nuodb_st_fetch
 #define dbd_st_destroy		nuodb_st_destroy
 #define dbd_db_destroy		nuodb_db_destroy
+#define dbd_db_disconnect	nuodb_db_disconnect
 
 void do_error (SV *h, int rc, char *what);

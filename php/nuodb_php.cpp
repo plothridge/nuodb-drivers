@@ -42,6 +42,8 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <cctype>
+#include <algorithm>
 
 using namespace std;
 
@@ -49,6 +51,16 @@ using namespace std;
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "php_nuodb.h"
+
+#ifdef ZEND_ENGINE_2
+#include "zend_exceptions.h"
+#endif
+
+#define LOWER_COLNAMES	1
+
+#define NUODB_ASSOC	(1 << 0)
+#define NUODB_NUM	(1 << 1)
+#define NUODB_BOTH	(NUODB_ASSOC | NUODB_NUM)
 
 ZEND_DECLARE_MODULE_GLOBALS(nuodb)
 
@@ -62,7 +74,10 @@ const zend_function_entry nuodb_functions[] = {
 	PHP_FE(nuodb_query,	NULL)
 	PHP_FE(nuodb_error,	NULL)
 	PHP_FE(nuodb_free_result,	NULL)
+	PHP_FE(nuodb_fetch_row,	NULL)
 	PHP_FE(nuodb_fetch_array,	NULL)
+	PHP_FE(nuodb_fetch_object,	NULL)
+	PHP_FE(nuodb_fetch_assoc,	NULL)
 	PHP_FE(nuodb_autocommit,       NULL)
 	{ NULL, NULL, NULL}
 /*	PHP_FE_END	Must be the last line in nuodb_functions[] */
@@ -148,6 +163,18 @@ typedef map <nuodb_result_t *, vector <nuodb_result_t *>::iterator> results_map_
 results_map_t results_map;
 
 nuodb_connection_t *default_connection;
+string default_error;
+
+static void nuodb_set_error(nuodb_connection_t *nc, string err)
+{
+ if (!nc) {
+  if (default_connection)
+    nc = default_connection;
+  else
+    default_error = err;
+ } else
+     nc->error = err;
+}
 
 static nuodb_connection_t *nuodb_create_connection(string hash,
   bool autocommit = true)
@@ -200,11 +227,11 @@ static void nuodb_free_result(nuodb_result_t *r, bool total_delete = true)
  }
   catch (SQLException& xcp) {
     if (NUODB_G(debug))
-      php_error(E_NOTICE, "Got exception: %s", xcp.getText());
+      php_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), xcp.getText());
  }
   catch (...) {
    if (NUODB_G(debug))
-       php_error(E_NOTICE, "Got generic exception");
+       php_error(E_NOTICE, "%s: Got generic exception", (__FUNCTION__ + 4));
   }
 }
 
@@ -239,11 +266,11 @@ static void nuodb_free_connection(nuodb_connection_t *nc)
  }
   catch (SQLException& xcp) {
     if (NUODB_G(debug))
-      php_error(E_NOTICE, "Got exception: %s", xcp.getText());
+      php_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), xcp.getText());
  }
   catch (...) {
    if (NUODB_G(debug))
-       php_error(E_NOTICE, "Got generic exception");
+       php_error(E_NOTICE, "%s: Got generic exception", (__FUNCTION__ + 4));
   }
 }
 
@@ -253,6 +280,178 @@ static nuodb_connection_t *nuodb_find_connection_by_hash(string hash)
  if (it != conn_map.end())
    return conn_map[hash];
  return 0; 
+}
+
+static void php_nuodb_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int result_type, int expected_args,
+  bool into_object)
+{
+        zval *res, *ctor_params = NULL;
+        zend_class_entry *ce = NULL;
+
+#ifdef ZEND_ENGINE_2
+        if (into_object) {
+                char *class_name = NULL;
+                int class_name_len = 0;
+
+                if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, (char *)"z|sz", &res, &class_name, &class_name_len, &ctor_params) == FAILURE) {
+                        return;
+                }
+                if (ZEND_NUM_ARGS() < 2) {
+                        ce = zend_standard_class_def;
+                } else {
+                        ce = zend_fetch_class(class_name, class_name_len, ZEND_FETCH_CLASS_AUTO TSRMLS_CC);
+                }
+                if (!ce) {
+                        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not find class '%s'", class_name);
+                        return;
+                }
+                result_type = NUODB_ASSOC;
+        } else
+#endif
+        {
+                if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, (char *)"r|l", &res, &result_type) == FAILURE) {
+                        return;
+                }
+                if (!result_type) {
+                        /* result_type might have been set outside, so only overwrite when not set */
+                        result_type = NUODB_BOTH;
+                }
+        }
+
+        if (result_type & ~NUODB_BOTH) {
+                php_error_docref(NULL TSRMLS_CC, E_WARNING, "The result type should be either NUODB_NUM, NUODB_ASSOC or NUODB_BOTH");
+                result_type = NUODB_BOTH;
+        }
+        
+        nuodb_result_t *r = (nuodb_result_t *) Z_RESVAL_P(res);
+        if (!r) {
+                php_error_docref(NULL TSRMLS_CC, E_WARNING, "The nuodb_result must be specified !");
+                RETURN_FALSE;
+        }
+  try {
+        if (!r->rs->next())
+          RETURN_FALSE;
+
+        array_init(return_value);
+
+        ResultSetMetaData *md = r->rs->getMetaData();
+        unsigned long columns = md->getColumnCount();
+        
+        for (unsigned long i = 1; i <= columns; i++) {
+
+	  string c_name(md->getColumnName(i));
+#ifdef LOWER_COLNAMES
+	  transform(c_name.begin(), c_name.end(), c_name.begin(), ::tolower);
+#endif
+          const char *col_name = c_name.c_str();
+          
+          const char *row_val = r->rs->getString(i);
+          bool isNull = r->rs->wasNull();
+ 
+                if (!isNull) { // not NULL
+                        zval *data;
+                        MAKE_STD_ZVAL(data);
+                        ZVAL_STRING(data, row_val, 1);
+                        // ZVAL_STRINGL(data, row_val, md->getCurrentColumnMaxLength(i), 1);
+                        if (result_type & NUODB_NUM) {
+                                add_index_zval(return_value, i, data);
+                        }
+                        if (result_type & NUODB_ASSOC) {
+                                if (result_type & NUODB_NUM) {
+                                        Z_ADDREF_P(data);
+                                }
+                                add_assoc_zval(return_value, col_name, data);
+                        }
+                } else {
+                        /* NULL value. */
+                        if (result_type & NUODB_NUM) {
+                                add_index_null(return_value, i);
+                        }
+
+                        if (result_type & NUODB_ASSOC) {
+                                add_assoc_null(return_value, col_name);
+                        }
+                }
+        }
+    }
+      catch (SQLException& xcp) {
+        r->nc->error = xcp.getText();
+        if (NUODB_G(debug))
+          php_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), xcp.getText());
+     }
+      catch (...) {
+         r->nc->error = "Got generic exception";
+         if (NUODB_G(debug))
+           php_error(E_NOTICE, "%s: Got generic exception", (__FUNCTION__ + 4));
+     }
+
+#ifdef ZEND_ENGINE_2
+        /* mysqlnd might return FALSE if no more rows */
+        if (into_object && Z_TYPE_P(return_value) != IS_BOOL) {
+                zval dataset = *return_value;
+                zend_fcall_info fci;
+                zend_fcall_info_cache fcc;
+                zval *retval_ptr; 
+        
+                object_and_properties_init(return_value, ce, NULL);
+                zend_merge_properties(return_value, Z_ARRVAL(dataset), 1 TSRMLS_CC);
+        
+                if (ce->constructor) {
+                        fci.size = sizeof(fci);
+                        fci.function_table = &ce->function_table;
+                        fci.function_name = NULL;
+                        fci.symbol_table = NULL;
+                        fci.object_ptr = return_value;
+                        fci.retval_ptr_ptr = &retval_ptr;
+                        if (ctor_params && Z_TYPE_P(ctor_params) != IS_NULL) {
+                                if (Z_TYPE_P(ctor_params) == IS_ARRAY) {
+                                        HashTable *ht = Z_ARRVAL_P(ctor_params);
+                                        Bucket *p;
+        
+                                        fci.param_count = 0;
+                                        fci.params = (zval ***) safe_emalloc(sizeof(zval*), ht->nNumOfElements, 0);
+                                        p = ht->pListHead;
+                                        while (p != NULL) {
+                                                fci.params[fci.param_count++] = (zval**)p->pData;
+                                                p = p->pListNext;
+                                        }
+                                } else {
+                                        /* Two problems why we throw exceptions here: PHP is typeless
+                                         * and hence passing one argument that's not an array could be
+                                         * by mistake and the other way round is possible, too. The 
+                                         * single value is an array. Also we'd have to make that one
+                                         * argument passed by reference.
+                                         */
+                                        zend_throw_exception(zend_exception_get_default(TSRMLS_C), (char *)"Parameter ctor_params must be an array", 0 TSRMLS_CC);
+                                        return;
+                                }
+                        } else {
+                                fci.param_count = 0;
+                                fci.params = NULL;
+                        }
+                        fci.no_separation = 1;
+
+                        fcc.initialized = 1;
+                        fcc.function_handler = ce->constructor;
+                        fcc.calling_scope = EG(scope);
+                        fcc.called_scope = Z_OBJCE_P(return_value);
+                        fcc.object_ptr = return_value;
+                
+                        if (zend_call_function(&fci, &fcc TSRMLS_CC) == FAILURE) {
+                                zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, (char *)"Could not execute %s::%s()", ce->name, ce->constructor->common.function_name);
+                        } else {
+                                if (retval_ptr) {
+                                        zval_ptr_dtor(&retval_ptr);
+                                }
+                        }
+                        if (fci.params) {
+                                efree(fci.params);
+                        }
+                } else if (ctor_params) {
+                        zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, (char *)"Class %s does not have a constructor hence you cannot use ctor_params", ce->name);
+                }
+        }
+#endif
 }
 
 /* {{{ PHP_MINIT_FUNCTION
@@ -306,11 +505,11 @@ PHP_RSHUTDOWN_FUNCTION(nuodb)
    }
     catch (SQLException& xcp) {
       if (NUODB_G(debug))
-        zend_error(E_NOTICE, "Got exception: %s", xcp.getText());
+        zend_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), xcp.getText());
    }
     catch (...) {
        if (NUODB_G(debug))
-         zend_error(E_NOTICE, "Got generic exception");
+         zend_error(E_NOTICE, "%s: Got generic exception", (__FUNCTION__ + 4));
     }
  }
   return SUCCESS;
@@ -337,7 +536,7 @@ PHP_FUNCTION(nuodb_connect)
 	char *user=(char *)"", *passwd=(char *)"", *database = NULL, *schema = (char *)"";
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, (char *)"s|sss", &database, &database_len,
 	  &user, &user_len, &passwd, &passwd_len, &schema, &schema_len) == FAILURE) {
-		return;
+		RETURN_FALSE;
 	}
 	if (NUODB_G(debug))
   	  php_error(E_NOTICE, "nuodb_connect: db (%s), user (%s), pass (%s), schema (%s)",
@@ -363,16 +562,20 @@ PHP_FUNCTION(nuodb_connect)
 	    if (NUODB_G(trace))
 	      php_error(E_NOTICE, "nuodb_connect: new connection (%p)", nc);
 	  } catch (SQLException& xcp) {
-	        nc->error = xcp.getText();
-                if (NUODB_G(debug))
-	          php_error(E_NOTICE, "Got exception: %s", xcp.getText());
-	        return;
+	        nuodb_set_error(0, xcp.getText());
+	        if (NUODB_G(debug))
+                  php_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), xcp.getText());
+                if (nc)
+                 nuodb_free_connection(nc);
+	        RETURN_FALSE;
          }
            catch (...) {
-             nc->error = "Got generic exception";
+             nuodb_set_error(0, "Got generic exception");
              if (NUODB_G(debug))
-               php_error(E_NOTICE, "Got generic exception");
-	     return;
+               php_error(E_NOTICE, "%s: Got generic exception", (__FUNCTION__ + 4));
+             if (nc)
+               nuodb_free_connection(nc);
+	     RETURN_FALSE;
          }
           if (!default_connection)
             default_connection = nc;
@@ -425,7 +628,8 @@ PHP_FUNCTION(nuodb_query)
    if (default_connection)
      nc = default_connection;
    else { // no connection
-     php_error(E_NOTICE, "nuodb_query: No connection found !");
+     if (NUODB_G(debug))
+       php_error(E_NOTICE, "nuodb_query: No connection found !");
      RETURN_FALSE;
    }
  }
@@ -468,7 +672,7 @@ PHP_FUNCTION(nuodb_query)
       delete r;
     nc->error = xcp.getText();
     if (NUODB_G(debug))
-      php_error(E_NOTICE, "Got exception: %s", nc->error.c_str());
+      php_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), nc->error.c_str());
     // if invalid connection we will get second exception and abort here
     if (strncasecmp("remote connection closed", nc->error.c_str(), 24))
       nc->c->rollback();
@@ -492,18 +696,19 @@ PHP_FUNCTION(nuodb_free_result)
  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, (char *)"r", &res) == FAILURE)
    return;
  if (res) {
-   php_error(E_NOTICE, "nuodb_free_result: res - (%p)", res);
+  if (NUODB_G(debug))
+    php_error(E_NOTICE, "nuodb_free_result: res - (%p)", res);
    nuodb_result_t *r = (nuodb_result_t *) Z_RESVAL_P(res);
  try {
     nuodb_free_result(r);
  }
   catch (SQLException& xcp) {
     if (NUODB_G(debug))
-      php_error(E_NOTICE, "Got exception: %s", xcp.getText());
+      php_error(E_NOTICE, "%s: Got exception: %s", (__FUNCTION__ + 4), xcp.getText());
  }
   catch (...) {
      if (NUODB_G(debug))
-       php_error(E_NOTICE, "Got generic exception");
+       php_error(E_NOTICE, "%s: Got generic exception", (__FUNCTION__ + 4));
   }
  }
 }
@@ -523,7 +728,7 @@ PHP_FUNCTION(nuodb_error)
     if (default_connection)
       nc = default_connection;
     else
-      RETURN_FALSE;
+      RETURN_STRING(default_error.c_str(), 1);
   }
   if (NUODB_G(debug))
     php_error(E_NOTICE, "nuodb_error: connection (%p), error (%s)", nc,
@@ -537,58 +742,24 @@ PHP_FUNCTION(nuodb_autocommit)
 {
 }
 
-// nuodb_fetch_array (resource result)
-
 PHP_FUNCTION(nuodb_fetch_array)
 {
- zval *res = NULL;
- if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, (char *)"r", &res) == FAILURE)
-   RETURN_FALSE;
- if (res) {
-   nuodb_result_t *r = (nuodb_result_t *) Z_RESVAL_P(res);
- try {
-    if (NUODB_G(debug))
-      php_error(E_NOTICE, "nuodb_fetch_array: connection (%p), result (%p)",
-        r->nc, r);
-    ResultSetMetaData *md = r->rs->getMetaData();
-    if (r->rs->next()) {
-      unsigned long columns = md->getColumnCount();
-      if (NUODB_G(trace))
-        php_error(E_NOTICE, "nuodb_fetch_array: columns (%ld)", columns);
-      array_init(return_value);
-      for (unsigned long i = 1; i <= columns; i++) {
-        const char *col = md->getColumnName(i);
-        zval *data;
-        MAKE_STD_ZVAL(data);
-        const char *row_val = r->rs->getString(i);
-        bool isNull = r->rs->wasNull();
-        if (NUODB_G(trace))
-         php_error(E_NOTICE, "nuodb_fetch_array: %ld column (%s), val (%s)", i, col,
-           isNull ? "NULL" : row_val);
-        if (isNull)
-          add_assoc_null(return_value, col);
-        else {
-          ZVAL_STRING(data, row_val, 1);
-          add_assoc_zval(return_value, col, data);
-        }
-      }
-    } else {
-        if (NUODB_G(trace))
-          php_error(E_NOTICE, "nuodb_fetch_array: no data to fetch for connection (%p) and result (%p)",
-           r->nc, r);
-        nuodb_free_result(r);
-        RETURN_FALSE;
-      }
- }
-  catch (SQLException& xcp) {
-    r->nc->error = xcp.getText();
-    if (NUODB_G(debug))
-      php_error(E_NOTICE, "Got exception: %s", xcp.getText());
- }
-  catch (...) {
-     r->nc->error = "Got generic exception";
-     if (NUODB_G(debug))
-       php_error(E_NOTICE, "Got generic exception");
-  }
- }
+  php_nuodb_fetch_hash(INTERNAL_FUNCTION_PARAM_PASSTHRU, 0, 2, 0);
+}
+
+PHP_FUNCTION(nuodb_fetch_row)
+{
+  php_nuodb_fetch_hash(INTERNAL_FUNCTION_PARAM_PASSTHRU, NUODB_NUM, 1, 0);
+}
+
+PHP_FUNCTION(nuodb_fetch_object)
+{
+  php_nuodb_fetch_hash(INTERNAL_FUNCTION_PARAM_PASSTHRU, NUODB_ASSOC, 2, 1);
+  if (Z_TYPE_P(return_value) == IS_ARRAY)
+    object_and_properties_init(return_value, ZEND_STANDARD_CLASS_DEF_PTR, Z_ARRVAL_P(return_value));
+}
+
+PHP_FUNCTION(nuodb_fetch_assoc)
+{
+  php_nuodb_fetch_hash(INTERNAL_FUNCTION_PARAM_PASSTHRU, NUODB_ASSOC, 1, 0);
 }
