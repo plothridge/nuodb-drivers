@@ -25,6 +25,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.summary = %q{NuoDB JDBC adapter for JRuby on Rails}
 
-  s.add_dependency 'activerecord-jdbc-adapter', "~> 1.2.0"
+  s.add_dependency 'activerecord-jdbc-adapter', "~> 1.2.2"
   s.add_dependency 'jdbc-nuodb', "~> #{version}"
 end
