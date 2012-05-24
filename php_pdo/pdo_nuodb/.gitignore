@@ -7,3 +7,6 @@ CMakeFiles/
 *.so
 *.so.*
 Testing/
+CMakeScripts/
+*.build/
+*.xcodeproj/

@@ -35,7 +35,6 @@
 #include "DatabaseMetaData.h"
 #include "PreparedStatement.h"
 
-
 struct SqlOption
 {
     char const * option;
@@ -50,42 +49,44 @@ struct SqlOptionArray
 
 class PdoNuoDbStatement;
 
-class PdoNuoDbHandle {
+class PdoNuoDbHandle
+{
 private:
-    NuoDB::Connection *_con;
-    SqlOptionArray *_opts;
+    NuoDB::Connection * _con;
+    SqlOptionArray * _opts;
     SqlOption _opt_arr[4];
-    PdoNuoDbStatement *_last_stmt;
+    PdoNuoDbStatement * _last_stmt;
     void deleteOptions();
 public:
-    PdoNuoDbHandle(SqlOptionArray *options);
+    PdoNuoDbHandle(SqlOptionArray * options);
     ~PdoNuoDbHandle();
-    void setOptions(SqlOptionArray *options);
-    NuoDB::Connection *createConnection();
-    NuoDB::Connection *getConnection();
-    PdoNuoDbStatement *createStatement(char const *sql);
+    void setOptions(SqlOptionArray * options);
+    NuoDB::Connection * createConnection();
+    NuoDB::Connection * getConnection();
+    PdoNuoDbStatement * createStatement(char const * sql);
     void closeConnection();
     void commit();
     void rollback();
 };
 
-class PdoNuoDbStatement {
+class PdoNuoDbStatement
+{
 private:
-    PdoNuoDbHandle *_dbh;
-    NuoDB::PreparedStatement *_stmt;
-    NuoDB::ResultSet *_rs;
+    PdoNuoDbHandle * _dbh;
+    NuoDB::PreparedStatement * _stmt;
+    NuoDB::ResultSet * _rs;
 public:
-    PdoNuoDbStatement(PdoNuoDbHandle *dbh);
+    PdoNuoDbStatement(PdoNuoDbHandle * dbh);
     ~PdoNuoDbStatement();
-    NuoDB::PreparedStatement *createStatement(char const *sql);
+    NuoDB::PreparedStatement * createStatement(char const * sql);
     void execute();
     void executeQuery();
     bool hasResultSet();
     bool next();
     size_t getColumnCount();
-    char const *getColumnName(size_t column);
+    char const * getColumnName(size_t column);
     int getSqlType(size_t column);
-    char const *getString(size_t column);
+    char const * getString(size_t column);
     unsigned int getInteger(size_t column);
     unsigned long getLong(size_t column);
 };
