@@ -38,10 +38,10 @@ module DBI::DBD::NuoDB
     # Bind a parameter to a statement. DBD Required.
     #
     def bind_param(param, value, attribs)
-      case value.class
-      when Integer
+      case value
+      when ::Integer
         @stmt.setInteger param, value
-      when Numeric
+      when ::Numeric
         @stmt.setDouble param, value
       else
         @stmt.setString param, value
@@ -55,12 +55,13 @@ module DBI::DBD::NuoDB
       # TODO this is inefficient, but I want to avoid poking at the statement text
       begin
         @result = @stmt.executeQuery
+	@column_info = self.column_info
       rescue RuntimeError
         @stmt.execute
         @result = nil
+        @column_info = nil
       end
       
-      @column_info = self.column_info
       @result
     end
 
@@ -107,35 +108,37 @@ module DBI::DBD::NuoDB
     #
     def column_info
       retval = []
-      count = @result.getColumnCount
-      for i in 1..count
-        meta = @result.getMetaData i
-        type = meta.getType
-        case
-        when type == :SQL_INTEGER
-          dbi_type = DBI::Type::Integer
-        when type == :SQL_DOUBLE
-          dbi_type = DBI::Type::Float
-        when type == :SQL_STRING
-          dbi_type = DBI::Type::Varchar
-        when type == :SQL_DATE
-          dbi_type = DBI::Type::Timestamp
-        else
-          raise "unknown type #{type} for column #{i}"
+      if !@result.nil?
+        count = @result.getColumnCount
+        for i in 1..count
+          meta = @result.getMetaData i
+          type = meta.getType
+          case
+          when type == :SQL_INTEGER
+            dbi_type = DBI::Type::Integer
+          when type == :SQL_DOUBLE
+            dbi_type = DBI::Type::Float
+          when type == :SQL_STRING
+            dbi_type = DBI::Type::Varchar
+          when type == :SQL_DATE
+            dbi_type = DBI::Type::Timestamp
+          else
+            raise "unknown type #{type} for column #{i}"
+          end
+          
+          retval << {
+            'name'     => meta.getColumnName,
+            'sql_type' => type,
+            'dbi_type' => dbi_type
+            # TODO 'type_name' => '???',
+            # TODO 'precision' => '???',
+            # TODO 'scale'     => '???',
+            # TODO 'nullable'  => '???',
+            # TODO 'indexed'   => '???',
+            # TODO 'primary'   => '???',
+            # TODO 'unique'    => '???'
+          }
         end
-                     
-        retval << {
-          'name'     => meta.getColumnName,
-          'sql_type' => type,
-          'dbi_type' => dbi_type
-          # TODO 'type_name' => '???',
-          # TODO 'precision' => '???',
-          # TODO 'scale'     => '???',
-          # TODO 'nullable'  => '???',
-          # TODO 'indexed'   => '???',
-          # TODO 'primary'   => '???',
-          # TODO 'unique'    => '???'
-        }
       end
       retval
     end

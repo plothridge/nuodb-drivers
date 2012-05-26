@@ -90,8 +90,6 @@ class TC_Nuodb < Test::Unit::TestCase
     sth.execute('Zara', 'Ali', 17, 'F', 1000.0)
     sth.finish
 
-    # TODO text values retain the closing quotes
-
     # TODO finish this test
 
     puts "Employees over 1000"
