@@ -53,6 +53,25 @@ module DBI
       def self.driver_name
         "NuoDB"
       end
+
+      DBI::TypeUtil.register_conversion(driver_name) do |obj|
+        # TODO date and time formatting may not be correct
+        newobj = case obj
+                 when ::DateTime
+                   "'#{obj.strftime("%Y-%m-%d %H:%M:%S")}'"
+                 when ::Time
+                   "'#{obj.strftime("%H:%M:%S")}'"
+                 when ::Date
+                   "'#{obj.strftime("%Y-%m-%d")}'"
+                 when ::NilClass
+                   "NULL"
+                 else
+                   obj
+                 end
+
+        [newobj, false]
+      end
+
     end
   end
 end
