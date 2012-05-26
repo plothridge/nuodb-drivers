@@ -38,84 +38,88 @@
 #define PDO_NUODB_SQLTYPE_STRING    5
 #define PDO_NUODB_SQLTYPE_DATE      6
 #define PDO_NUODB_SQLTYPE_TIME      7
-#define PDO_NUODB_SQLTYPE_DATETIME  8
+#define PDO_NUODB_SQLTYPE_TIMESTAMP 8
 
-typedef struct {
-  short type;  // datatype 
-  short scale; // scale factor
-  short col_name_length; // length of column name
-  char  col_name[32];
-  short len; // length of data buffer
-  char *data; // address of data buffer
+typedef struct
+{
+    short type;  // datatype
+    short scale; // scale factor
+    short col_name_length; // length of column name
+    char  col_name[32];
+    short len; // length of data buffer
+    char * data; // address of data buffer
 } nuo_param; // XSQLVAR
 
-typedef struct {
-  short num_params;  // number of actual params (sqld)
-  short num_alloc;  // number of allocated params (sqln)
-  nuo_param params[1]; // address of first param 
+typedef struct
+{
+    short num_params;  // number of actual params (sqld)
+    short num_alloc;  // number of allocated params (sqln)
+    nuo_param params[1]; // address of first param
 } nuo_params; //XSQLDA
 
 #define NUO_PARAMS_LENGTH(n)   (sizeof(nuo_params) + (n-1) * sizeof(nuo_param))
 
-typedef struct {
-	/* the connection handle */
-    PdoNuoDbHandle *db;
+typedef struct
+{
+    /* the connection handle */
+    PdoNuoDbHandle * db;
 
-	/* the last error that didn't come from the API */
-	char const *last_app_error;
+    /* the last error that didn't come from the API */
+    char const * last_app_error;
 
-	/* prepend table names on column names in fetch */
-	unsigned fetch_table_names:1;
+    /* prepend table names on column names in fetch */
+    unsigned fetch_table_names:1;
 
 } pdo_nuodb_db_handle;
 
+typedef struct
+{
 
-typedef struct {
+    /* the link that owns this statement */
+    pdo_nuodb_db_handle * H;
 
-	/* the link that owns this statement */
-	pdo_nuodb_db_handle *H;
+    /* the statement handle */
+    PdoNuoDbStatement * stmt;
 
-	/* the statement handle */
-    PdoNuoDbStatement *stmt;
+    /* the name of the cursor (if it has one) */
+    char name[32];
 
-	/* the name of the cursor (if it has one) */
-	char name[32];
+    /* the type of statement that was issued */
+    char statement_type:8;
 
-	/* the type of statement that was issued */
-	char statement_type:8;
-	
-	/* whether EOF was reached for this statement */
-	unsigned exhausted:1;
+    /* whether EOF was reached for this statement */
+    unsigned exhausted:1;
 
-	/* successful execute opens a cursor */
-	unsigned cursor_open:1;
+    /* successful execute opens a cursor */
+    unsigned cursor_open:1;
 
-	unsigned _reserved:22;
+    unsigned _reserved:22;
 
-	/* the named params that were converted to ?'s by the driver */
-	HashTable *named_params;
+    /* the named params that were converted to ?'s by the driver */
+    HashTable * named_params;
 
-	/* allocated space to convert fields values to other types */
-	char **fetch_buf;
-	
-	/* the input params */
-	nuo_params *in_params;
-	
-	/* the output params */
-	nuo_params *out_params; 
-	
+    /* allocated space to convert fields values to other types */
+    char ** fetch_buf;
+
+    /* the input params */
+    nuo_params * in_params;
+
+    /* the output params */
+    nuo_params * out_params;
+
 } pdo_nuodb_stmt;
 
 extern pdo_driver_t pdo_nuodb_driver;
 
 extern struct pdo_stmt_methods nuodb_stmt_methods;
 
-void _nuodb_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, char const *file, long line TSRMLS_DC);
+void _nuodb_error(pdo_dbh_t * dbh, pdo_stmt_t * stmt, char const * file, long line TSRMLS_DC);
 
-enum {
-	PDO_NUODB_ATTR_DATE_FORMAT = PDO_ATTR_DRIVER_SPECIFIC,
-	PDO_NUODB_ATTR_TIME_FORMAT,
-	PDO_NUODB_ATTR_TIMESTAMP_FORMAT,
+enum
+{
+    PDO_NUODB_ATTR_DATE_FORMAT = PDO_ATTR_DRIVER_SPECIFIC,
+    PDO_NUODB_ATTR_TIME_FORMAT,
+    PDO_NUODB_ATTR_TIMESTAMP_FORMAT,
 };
 
 #endif	/* PHP_PDO_NUODB_INT_H */

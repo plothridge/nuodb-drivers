@@ -30,8 +30,8 @@
 #include "config.h"
 #endif
 
-
-extern "C" {
+extern "C"
+{
 #include "php.h"
 #ifdef ZEND_ENGINE_2
 # include "zend_exceptions.h"
@@ -46,48 +46,39 @@ extern "C" {
 #include "php_pdo_nuodb_cpp_int.h"
 #include "php_pdo_nuodb_int.h"
 
-using namespace nuodb::sqlapi;
 
-// private
-void PdoNuoDbHandle::deleteConnection()
+PdoNuoDbHandle::PdoNuoDbHandle(SqlOptionArray * options)
+    : _con(NULL), _opts(NULL), _last_stmt(NULL)
 {
-    if (_con == NULL) return;
-    delete _con;
-    _con = NULL;
-}
-
-// private
-void PdoNuoDbHandle::deleteEnvrionment()
-{
-    if (_env == NULL) return;
-    delete _env;
-    _env = NULL;
-}
-
-PdoNuoDbHandle::PdoNuoDbHandle(SqlOptionArray *options) : _env(NULL), _con(NULL), _opts(NULL), _last_stmt(NULL)
-{
-    for (int i=0; i<4; i++) {
-       _opt_arr[i].option = NULL;
-       _opt_arr[i].extra = NULL;
+    for (int i=0; i<4; i++)
+    {
+        _opt_arr[i].option = NULL;
+        _opt_arr[i].extra = NULL;
     }
     setOptions(options);
 }
 
 PdoNuoDbHandle::~PdoNuoDbHandle()
 {
-    deleteConnection();
-    deleteEnvrionment();
+    closeConnection();
     deleteOptions();
 }
 
-void PdoNuoDbHandle::deleteOptions() {
-    if (_opts == NULL) return;
-    for (int i=0; i<4; i++) {
-        if (_opt_arr[i].option != NULL) {
+void PdoNuoDbHandle::deleteOptions()
+{
+    if (_opts == NULL)
+    {
+        return;
+    }
+    for (int i=0; i<4; i++)
+    {
+        if (_opt_arr[i].option != NULL)
+        {
             delete _opt_arr[i].option;
             _opt_arr[i].option = NULL;
         }
-        if (_opt_arr[i].extra != NULL) {
+        if (_opt_arr[i].extra != NULL)
+        {
             delete (char *)_opt_arr[i].extra;
             _opt_arr[i].extra = NULL;
         }
@@ -96,7 +87,7 @@ void PdoNuoDbHandle::deleteOptions() {
     _opts = NULL;
 }
 
-void PdoNuoDbHandle::setOptions(SqlOptionArray *options)
+void PdoNuoDbHandle::setOptions(SqlOptionArray * options)
 {
     deleteOptions();
     _opts = new SqlOptionArray;
@@ -110,152 +101,212 @@ void PdoNuoDbHandle::setOptions(SqlOptionArray *options)
     _opt_arr[2].extra = (void *) strdup((const char *)options->array[2].extra);
     _opt_arr[3].option = (char const *) strdup(options->array[3].option);
     _opt_arr[3].extra = (void *) strdup((const char *)options->array[3].extra);
-
 }
 
-SqlConnection *PdoNuoDbHandle::createConnection()
+NuoDB::Connection * PdoNuoDbHandle::createConnection()
 {
-    deleteConnection();
-    deleteEnvrionment();
-    _env = SqlEnvironment::createSqlEnvironment(_opts);
-    _con = _env->createSqlConnection(_opts);
+    closeConnection();
+    _con = NuoDB::Connection::create();
+    //TODO add properties
     return _con;
 }
 
-SqlConnection *PdoNuoDbHandle::getConnection()
+NuoDB::Connection * PdoNuoDbHandle::getConnection()
 {
     return _con;
 }
 
-PdoNuoDbStatement *PdoNuoDbHandle::createStatement(char const *sql)
+PdoNuoDbStatement * PdoNuoDbHandle::createStatement(char const * sql)
 {
-    PdoNuoDbStatement *rval = NULL;
-    if (sql == NULL) return NULL;
+    PdoNuoDbStatement * rval = NULL;
+    if (sql == NULL)
+    {
+        return NULL;
+    }
     rval = new PdoNuoDbStatement(this);
     rval->createStatement(sql);
     _last_stmt = rval;
     return rval;
 }
 
-void PdoNuoDbHandle::closeConnection() {
-    if (_con == NULL) return;
-    delete _con;
+void PdoNuoDbHandle::closeConnection()
+{
+    if (_con == NULL)
+    {
+        return;
+    }
+    _con->close();
     _con = NULL;
-    delete _env;
-    _env=NULL;
 }
 
-void PdoNuoDbHandle::commit() {
-    if (_con == NULL) return;
+void PdoNuoDbHandle::commit()
+{
+    if (_con == NULL)
+    {
+        return;
+    }
     _con->commit();
 }
 
-void PdoNuoDbHandle::rollback() {
-    if (_con == NULL) return;
+void PdoNuoDbHandle::rollback()
+{
+    if (_con == NULL)
+    {
+        return;
+    }
     _con->rollback();
 }
 
-
-
-
-
-
-
-PdoNuoDbStatement::PdoNuoDbStatement(PdoNuoDbHandle *dbh) : _dbh(dbh), _stmt(NULL), _rs(NULL) {
+PdoNuoDbStatement::PdoNuoDbStatement(PdoNuoDbHandle * dbh) : _dbh(dbh), _stmt(NULL), _rs(NULL)
+{
     // empty
 }
 
-PdoNuoDbStatement::~PdoNuoDbStatement() {
-    if (_rs != NULL) delete _rs;
+PdoNuoDbStatement::~PdoNuoDbStatement()
+{
+    if (_rs != NULL)
+    {
+        _rs->close();
+    }
     _rs = NULL;
-    if (_stmt != NULL) delete _stmt;
+    if (_stmt != NULL)
+    {
+        _stmt->close();
+    }
     _stmt = NULL;
 }
 
-SqlPreparedStatement *PdoNuoDbStatement::createStatement(char const *sql) {
-    if (sql == NULL) return NULL;
-    SqlConnection *_con = NULL;
+NuoDB::PreparedStatement * PdoNuoDbStatement::createStatement(char const * sql)
+{
+    if (sql == NULL)
+    {
+        return NULL;
+    }
+    NuoDB::Connection * _con = NULL;
     _con = _dbh->getConnection();
-    if (_con == NULL) return NULL;
-    _stmt = _con->createPreparedStatement(sql);
+    if (_con == NULL)
+    {
+        return NULL;
+    }
+    _stmt = _con->prepareStatement(sql);
     _rs = NULL;
     return _stmt;
 }
 
-void PdoNuoDbStatement::execute() {
-    if (_stmt == NULL) return;
+void PdoNuoDbStatement::execute()
+{
+    if (_stmt == NULL)
+    {
+        return;
+    }
     _stmt->execute();
 }
 
-void PdoNuoDbStatement::executeQuery() {
-    if (_stmt == NULL) return;
+void PdoNuoDbStatement::executeQuery()
+{
+    if (_stmt == NULL)
+    {
+        return;
+    }
     _rs = _stmt->executeQuery();
 }
 
-bool PdoNuoDbStatement::hasResultSet() {
+bool PdoNuoDbStatement::hasResultSet()
+{
     return (_rs != NULL);
 }
 
-bool PdoNuoDbStatement::next() {
-    if (_rs == NULL) return false;
+bool PdoNuoDbStatement::next()
+{
+    if (_rs == NULL)
+    {
+        return false;
+    }
     return _rs->next();
 }
 
-size_t PdoNuoDbStatement::getColumnCount() {
-    if (_rs == NULL) return false;
-    return _rs->getColumnCount();
+size_t PdoNuoDbStatement::getColumnCount()
+{
+    if (_rs == NULL)
+    {
+        return false;
+    }
+    NuoDB::ResultSetMetaData * md = _rs->getMetaData();
+    return md->getColumnCount();
 }
 
-char const * PdoNuoDbStatement::getColumnName(size_t column) {
-    char const *rval = NULL;
-    if (_rs == NULL) return NULL;
-    try {
-        SqlColumnMetaData *scmd = _rs->getMetaData(column+1);
-        rval = scmd->getColumnName();
-        delete scmd;
-    } catch (ErrorCodeException &e) {
-        printf("Failed: %s", e.what());
+char const * PdoNuoDbStatement::getColumnName(size_t column)
+{
+    char const * rval = NULL;
+    if (_rs == NULL)
+    {
+        return NULL;
+    }
+    try
+    {
+        NuoDB::ResultSetMetaData * md = _rs->getMetaData();
+        rval = md->getColumnName(column+1);
+    }
+    catch (NuoDB::SQLException & e)
+    {
+        printf("Failed: %s", e.getText());
     }
     return rval;
 }
 
-int PdoNuoDbStatement::getSqlType(size_t column) {
-    if (_rs == NULL) return 0;
-    SqlColumnMetaData *scmd = _rs->getMetaData(column+1);
-    SqlType t = scmd->getType();
-    delete scmd;
-    switch(t) {
-        case SQL_BOOLEAN:
-            return PDO_NUODB_SQLTYPE_BOOLEAN;
-        case SQL_INTEGER:
-            return PDO_NUODB_SQLTYPE_INTEGER;
-        case SQL_BIGINT:
-            return PDO_NUODB_SQLTYPE_BIGINT;
-        case SQL_DOUBLE:
-            return PDO_NUODB_SQLTYPE_DOUBLE;
-        case SQL_STRING:
-            return PDO_NUODB_SQLTYPE_STRING;
-        case SQL_DATE:
-            return PDO_NUODB_SQLTYPE_DATE;
-        case SQL_TIME:
-            return PDO_NUODB_SQLTYPE_TIME;
-        case SQL_DATETIME:
-            return PDO_NUODB_SQLTYPE_DATETIME;
+int PdoNuoDbStatement::getSqlType(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return 0;
+    }
+    NuoDB::ResultSetMetaData * md = _rs->getMetaData();
+    int sqlType = md->getColumnType(column+1);
+    switch (sqlType)
+    {
+    case NuoDB::NUOSQL_BOOLEAN:
+        return PDO_NUODB_SQLTYPE_BOOLEAN;
+    case NuoDB::NUOSQL_INTEGER:
+        return PDO_NUODB_SQLTYPE_INTEGER;
+    case NuoDB::NUOSQL_BIGINT:
+        return PDO_NUODB_SQLTYPE_BIGINT;
+    case NuoDB::NUOSQL_DOUBLE:
+        return PDO_NUODB_SQLTYPE_DOUBLE;
+    case NuoDB::NUOSQL_VARCHAR:
+        return PDO_NUODB_SQLTYPE_STRING;
+    case NuoDB::NUOSQL_DATE:
+        return PDO_NUODB_SQLTYPE_DATE;
+    case NuoDB::NUOSQL_TIME:
+        return PDO_NUODB_SQLTYPE_TIME;
+    case NuoDB::NUOSQL_TIMESTAMP:
+        return PDO_NUODB_SQLTYPE_TIMESTAMP;
     }
     return 0;
 }
 
-char const *PdoNuoDbStatement::getString(size_t column) {
-    if (_rs == NULL) return NULL;
+char const * PdoNuoDbStatement::getString(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return NULL;
+    }
     return _rs->getString(column+1);
 }
 
-unsigned int PdoNuoDbStatement::getInteger(size_t column) {
-    if (_rs == NULL) return 0;
-    return _rs->getInteger(column+1);
+unsigned int PdoNuoDbStatement::getInteger(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return 0;
+    }
+    return _rs->getInt(column+1);
 }
 
-unsigned long PdoNuoDbStatement::getLong(size_t column) {
-    if (_rs == NULL) return 0;
+unsigned long PdoNuoDbStatement::getLong(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return 0;
+    }
     return _rs->getLong(column+1);
 }
