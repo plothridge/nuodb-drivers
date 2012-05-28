@@ -27,12 +27,10 @@
 #
 
 require 'nuodb'
-require 'pp' # TODO TEMPORARY
 
 module DBI::DBD::NuoDB
 
   class Driver < DBI::BaseDriver
-    # TODO include Util
 
     def initialize
       super("0.4.0")
