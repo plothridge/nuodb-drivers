@@ -86,19 +86,29 @@ class TC_Nuodb < Test::Unit::TestCase
  		   SEX, 
 		   INCOME)
                    VALUES (?, ?, ?, ?, ?)" )
-    sth.execute('John', 'Poul', 25, 'M', 2300.0)
-    sth.execute('Zara', 'Ali', 17, 'F', 1000.0)
+    sth.execute('Fred', 'Flintstone', 43, 'M', 2300.0)
+    sth.execute('Betty', 'Rubble', 38, 'F', 1000.0)
     sth.finish
 
-    # TODO finish this test
-
-    puts "Employees over 1000"
+    # this query produces one record
     sth = @dbh.prepare("SELECT * FROM EMPLOYEE WHERE INCOME > ?")
     sth.execute(1000)
-    sth.fetch do |row|
-      pp row
-    end
+
+    # check first record
+    result = sth.fetch
+    assert_equal ['Fred', 'Flintstone', 43, 'M', 2300.0], result
+
+    # ensure no more records
+    assert_nil sth.fetch
+
     sth.finish
+
+    begin
+      sth.fetch
+    rescue DBI::InterfaceError => e
+      assert_equal 'Statement was already closed!', e.message
+    end
+
   end
 
 end
