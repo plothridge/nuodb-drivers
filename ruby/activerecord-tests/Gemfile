@@ -28,10 +28,6 @@
 
 source "http://rubygems.org"
 gem 'rake'
-
 gem 'activerecord'
 gem 'jdbc-nuodb'
-
-gem 'activerecord-jdbc-adapter'
-gem 'activerecord-jdbcnuodb-adapter'
-
+gem 'activerecord-adapter'

@@ -39,12 +39,16 @@ module DBI::DBD::NuoDB
     #
     def bind_param(param, value, attribs)
       case value
-      when ::Integer
+      when String
+        @stmt.setString param, value
+      when Integer
         @stmt.setInteger param, value
-      when ::Numeric
+      when Fixnum
+        @stmt.setInteger param, value
+      when Float
         @stmt.setDouble param, value
       else
-        @stmt.setString param, value
+        raise "don't know how to bind_param #{value.class}"
       end
     end
 
@@ -78,12 +82,11 @@ module DBI::DBD::NuoDB
     #
     def fetch
       if @result.next
-        count = @result.getColumnCount
-
+        meta = @result.getMetaData
+        count = meta.getColumnCount
         retval = []
         for i in 1..count
-          meta = @result.getMetaData(i)
-          type = meta.getType
+          type = meta.getType i
           case
           when type == :SQL_INTEGER
             retval << @result.getInteger(i)
@@ -93,6 +96,8 @@ module DBI::DBD::NuoDB
             retval << @result.getString(i)
           when type == :SQL_DATE
             retval << @result.getDate(i)
+          when type == :SQL_CHAR
+            retval << @result.getChar(i)
           else
             raise "unknown type #{type} for column #{i}"
           end
@@ -108,37 +113,38 @@ module DBI::DBD::NuoDB
     #
     def column_info
       retval = []
-      if !@result.nil?
-        count = @result.getColumnCount
-        for i in 1..count
-          meta = @result.getMetaData i
-          type = meta.getType
-          case
-          when type == :SQL_INTEGER
-            dbi_type = DBI::Type::Integer
-          when type == :SQL_DOUBLE
-            dbi_type = DBI::Type::Float
-          when type == :SQL_STRING
-            dbi_type = DBI::Type::Varchar
-          when type == :SQL_DATE
-            dbi_type = DBI::Type::Timestamp
-          else
-            raise "unknown type #{type} for column #{i}"
-          end
-          
-          retval << {
-            'name'     => meta.getColumnName,
-            'sql_type' => type,
-            'dbi_type' => dbi_type
-            # TODO 'type_name' => '???',
-            # TODO 'precision' => '???',
-            # TODO 'scale'     => '???',
-            # TODO 'nullable'  => '???',
-            # TODO 'indexed'   => '???',
-            # TODO 'primary'   => '???',
-            # TODO 'unique'    => '???'
-          }
+      return [] if @result.nil?
+      meta = @result.getMetaData
+      count = meta.getColumnCount
+      for i in 1..count
+        type = meta.getType i
+        case
+        when type == :SQL_INTEGER
+          dbi_type = DBI::Type::Integer
+        when type == :SQL_DOUBLE
+          dbi_type = DBI::Type::Float
+        when type == :SQL_STRING
+          dbi_type = DBI::Type::Varchar
+        when type == :SQL_DATE
+          dbi_type = DBI::Type::Timestamp
+        when type == :SQL_CHAR
+          dbi_type = DBI::Type::Varchar
+        else
+          raise "unknown type #{type} for column #{i}"
         end
+                     
+        retval << {
+          'name'     => meta.getColumnName(i),
+          'sql_type' => type,
+          'dbi_type' => dbi_type
+          # TODO 'type_name' => '???',
+          # TODO 'precision' => '???',
+          # TODO 'scale'     => '???',
+          # TODO 'nullable'  => '???',
+          # TODO 'indexed'   => '???',
+          # TODO 'primary'   => '???',
+          # TODO 'unique'    => '???'
+        }
       end
       retval
     end

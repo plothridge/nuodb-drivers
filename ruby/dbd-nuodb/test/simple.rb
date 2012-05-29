@@ -32,7 +32,7 @@ require 'pp'
 class TC_Nuodb < Test::Unit::TestCase
 
   def setup()
-    @dbh = DBI.connect("DBI:NuoDB:test:localhost", "dba", "goalie")
+    @dbh = DBI.connect("DBI:NuoDB:test:localhost", "cloud", "user")
   end
 
   def teardown()
@@ -71,8 +71,8 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   def test_insert_params()
+    assert(@dbh.convert_types)
     @dbh.do("DROP TABLE IF EXISTS EMPLOYEE")
-
     @dbh.do("CREATE TABLE EMPLOYEE (
                FIRST_NAME CHAR(20) NOT NULL,
                LAST_NAME CHAR(20),

@@ -46,7 +46,7 @@ end
 # Create compressed packages
 dist_dirs = ["lib", "test"]
 
-spec = eval(File.read('activesupport.gemspec'))
+spec = eval(File.read('activerecord-nuodb-adapter.gemspec'))
 
 Gem::PackageTask.new(spec) do |p|
   p.gem_spec = spec

@@ -9,17 +9,12 @@ GEM
       activesupport (= 3.2.1)
       arel (~> 3.0.0)
       tzinfo (~> 0.3.29)
-    activerecord-jdbc-adapter (1.2.2)
-    activerecord-jdbcnuodb-adapter (1.0)
-      activerecord-jdbc-adapter (~> 1.2.0)
-      jdbc-nuodb (~> 1.0)
     activesupport (3.2.1)
       i18n (~> 0.6)
       multi_json (~> 1.0)
     arel (3.0.0)
     builder (3.0.0)
     i18n (0.6.0)
-    jdbc-nuodb (1.0)
     multi_json (1.0.4)
     rake (0.9.2.2)
     tzinfo (0.3.31)
@@ -29,7 +24,5 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord
-  activerecord-jdbc-adapter
-  activerecord-jdbcnuodb-adapter
-  jdbc-nuodb
+  activerecord-adapter
   rake

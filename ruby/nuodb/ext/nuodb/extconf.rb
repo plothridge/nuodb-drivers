@@ -28,14 +28,12 @@
 
 require 'mkmf'
 
-dir_config('nuodb', '/opt/nuodb/include', ['/opt/nuodb/lib', '/opt/nuodb/lib64'])
-
-dir_config('nuosqlapi', '/opt/NuoSqlApi/include', '/opt/NuoSqlApi/lib')
+#dir_config('nuodbapi', '../../../../nuodbapi/include', '../../../../nuodbapi/lib')
+dir_config('nuodbapi', '/tmp/nuodbapi/include', '/tmp/nuodbapi/lib')
 
 CONFIG['warnflags'].slice!(/-Wdeclaration-after-statement/)
 CONFIG['warnflags'].slice!(/-Wimplicit-function-declaration/)
 
-have_library('NuoSqlApi')
-have_library('NuoRemote')
+have_library('NuoRemote') or raise
 
 create_makefile('nuodb/nuodb')

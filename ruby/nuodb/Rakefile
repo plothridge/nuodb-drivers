@@ -33,7 +33,6 @@ rescue LoadError
   require 'rake'
 end
 
-
 require 'rubygems/package_task'
 require 'hoe'
 
@@ -59,9 +58,8 @@ end
 desc "Generate or update the standalone gemspec file for the project"
 task :gemspec => ["#{HOE.spec.name}.gemspec"]
 
-
 # use rake-compiler for building the extension
-require 'rake/extensiontask'
+require 'rake/extensiontask' or raise
 
 Rake::ExtensionTask.new('nuodb', HOE.spec) do |ext|
   ext.lib_dir = "lib/nuodb"

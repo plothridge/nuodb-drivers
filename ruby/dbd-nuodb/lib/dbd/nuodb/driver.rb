@@ -47,8 +47,7 @@ module DBI::DBD::NuoDB
       hash = DBI::Utils.parse_params(dbname)
       database = hash['database'] + '@' + hash['host']
       schema = hash['database']
-      @enviroment = Nuodb::SqlEnvironment.createSqlEnvironment
-      handle = @enviroment.createSqlConnection database, schema, username, password
+      handle = Nuodb::Connection.createSqlConnection database, schema, username, password
       return Database.new handle, attr
     end
 

@@ -2,7 +2,7 @@
 
 $LOAD_PATH << File.expand_path('../../nuodb/lib', __FILE__)
 
-version = todo!!!!
+version = "1.0.0"
 
 Gem::Specification.new do |s|
   s.name        = "activerecord-nuodb-adapter"
@@ -19,5 +19,5 @@ Gem::Specification.new do |s|
   ]
   s.homepage = %q{http://nuodb.com/}
   s.require_paths = ["lib"]
-  s.summary = %q{NuoDB JDBC adapter for JRuby on Rails}
+  s.summary = %q{NuoDB adapter}
 end

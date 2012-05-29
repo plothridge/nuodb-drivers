@@ -71,7 +71,6 @@ module DBI
 
         [newobj, false]
       end
-
     end
   end
 end
