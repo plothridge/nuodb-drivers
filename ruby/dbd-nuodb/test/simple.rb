@@ -32,7 +32,11 @@ require 'pp'
 class TC_Nuodb < Test::Unit::TestCase
 
   def setup()
-    @dbh = DBI.connect("DBI:NuoDB:test:localhost", "cloud", "user")
+    schema = ENV['NUODB_SCHEMA'] || 'test'
+    hostname = ENV['NUODB_HOSTNAME'] || 'localhost'
+    username = ENV['NUODB_USERNAME'] || 'cloud'
+    password = ENV['NUODB_PASSWORD'] || 'user'
+    @dbh = DBI.connect("DBI:NuoDB:#{schema}:#{hostname}", username, password)
   end
 
   def teardown()
