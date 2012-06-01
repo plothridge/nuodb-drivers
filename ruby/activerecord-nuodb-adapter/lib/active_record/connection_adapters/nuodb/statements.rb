@@ -26,4 +26,22 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'active_record/connection_adapters/nuodb_adapter'
+module ActiveRecord
+  module ConnectionAdapters
+    module Nuodb
+      module Statements
+
+        def execute(sql, name = nil)
+          do_execute sql, name
+        end
+
+        def do_execute(sql, name = 'SQL')
+          log(sql, name) do
+            @connection.execute(sql)
+          end
+        end
+
+      end
+    end
+  end
+end
