@@ -44,7 +44,7 @@ module DBI
     # Requires DBI and the 'nuodb' gem or package to work.
     #
     module NuoDB
-      VERSION = "0.1.0"
+      VERSION = "1.0.0"
       DESCRIPTION = "NuoDB DBI DBD, Leverages 'nuodb' low-level driver"
 
       #
@@ -71,7 +71,6 @@ module DBI
 
         [newobj, false]
       end
-
     end
   end
 end

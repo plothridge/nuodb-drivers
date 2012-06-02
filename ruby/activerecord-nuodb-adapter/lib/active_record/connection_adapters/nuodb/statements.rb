@@ -26,40 +26,22 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'nuodb'
+module ActiveRecord
+  module ConnectionAdapters
+    module Nuodb
+      module Statements
 
-module DBI::DBD::NuoDB
+        def execute(sql, name = nil)
+          do_execute sql, name
+        end
 
-  class Driver < DBI::BaseDriver
+        def do_execute(sql, name = 'SQL')
+          log(sql, name) do
+            @connection.execute(sql)
+          end
+        end
 
-    def initialize
-      super("0.4.0")
+      end
     end
-
-    def default_user
-      ['', nil]
-    end
-
-    #
-    # Connect to the database. DBD Required.
-    #
-    def connect(dbname, username, password, attr)
-      hash = DBI::Utils.parse_params(dbname)
-      database = hash['database'] + '@' + hash['host']
-      schema = hash['database']
-      handle = Nuodb::Connection.createSqlConnection database, schema, username, password
-      return Database.new handle, attr
-    end
-
-    #
-    # Disconnect all database handles. DBD Required.
-    #
-    def disconnect_all
-    end
-
-    def data_sources
-    end
-
   end
-
 end

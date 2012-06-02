@@ -26,40 +26,42 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'nuodb'
+require 'arel'
 
-module DBI::DBD::NuoDB
+module Arel
 
-  class Driver < DBI::BaseDriver
+  module Visitors
+    class NuoDB < Arel::Visitors::ToSql
 
-    def initialize
-      super("0.4.0")
+      private
+
+      def visit_Arel_Nodes_Offset(o)
+        "WHERE [__rnt].[__rn] > (#{visit o.expr})"
+      end
+
+      def visit_Arel_Nodes_Limit(o)
+        "TOP (#{visit o.expr})"
+      end
+
+      def visit_Arel_Nodes_Lock(o)
+        visit o.expr
+      end
+      
+      def visit_Arel_Nodes_Ordering(o)
+        if o.respond_to?(:direction)
+          "#{visit o.expr} #{o.ascending? ? 'ASC' : 'DESC'}"
+        else
+          visit o.expr
+        end
+      end
+      
+      def visit_Arel_Nodes_Bin(o)
+        "#{visit o.expr} #{@connection.cs_equality_operator}"
+      end
+
     end
-
-    def default_user
-      ['', nil]
-    end
-
-    #
-    # Connect to the database. DBD Required.
-    #
-    def connect(dbname, username, password, attr)
-      hash = DBI::Utils.parse_params(dbname)
-      database = hash['database'] + '@' + hash['host']
-      schema = hash['database']
-      handle = Nuodb::Connection.createSqlConnection database, schema, username, password
-      return Database.new handle, attr
-    end
-
-    #
-    # Disconnect all database handles. DBD Required.
-    #
-    def disconnect_all
-    end
-
-    def data_sources
-    end
-
   end
 
 end
+
+Arel::Visitors::VISITORS['nuodb'] = Arel::Visitors::NuoDB

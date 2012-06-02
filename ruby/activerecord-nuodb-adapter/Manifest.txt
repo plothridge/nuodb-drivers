@@ -1,0 +1,11 @@
+COPYING
+History.txt
+Manifest.txt
+README.md
+Rakefile
+lib/active_record/connection_adapters/nuodb/statements.rb
+lib/active_record/connection_adapters/nuodb/version.rb
+lib/active_record/connection_adapters/nuodb_adapter.rb
+lib/activerecord-nuodb-adapter.rb
+lib/arel/visitors/nuodb.rb
+test/simple.rb

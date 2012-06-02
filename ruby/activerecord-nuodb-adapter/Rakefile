@@ -26,40 +26,35 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'nuodb'
-
-module DBI::DBD::NuoDB
-
-  class Driver < DBI::BaseDriver
-
-    def initialize
-      super("0.4.0")
-    end
-
-    def default_user
-      ['', nil]
-    end
-
-    #
-    # Connect to the database. DBD Required.
-    #
-    def connect(dbname, username, password, attr)
-      hash = DBI::Utils.parse_params(dbname)
-      database = hash['database'] + '@' + hash['host']
-      schema = hash['database']
-      handle = Nuodb::Connection.createSqlConnection database, schema, username, password
-      return Database.new handle, attr
-    end
-
-    #
-    # Disconnect all database handles. DBD Required.
-    #
-    def disconnect_all
-    end
-
-    def data_sources
-    end
-
-  end
-
+begin
+  require 'rake'
+rescue LoadError
+  require 'rubygems'
+  require 'rake'
 end
+
+
+require 'rubygems/package_task'
+require 'hoe'
+
+HOE = Hoe.spec 'activerecord-nuodb-adapter' do
+  self.author = ['NuoDB, Inc.']
+  self.email = ['info@nuodb.com']
+  self.need_tar = false
+  self.need_zip = false
+
+  self.test_globs = [ 'test/simple.rb' ];
+
+  spec_extras[:required_ruby_version] = Gem::Requirement.new('>= 1.8.6')
+
+  extra_deps << ['dbd-nuodb', '~> 1.0.0']
+end
+
+file "#{HOE.spec.name}.gemspec" => ['Rakefile', 'tasks/gem.rake'] do |t|
+  puts "Generating #{t.name}"
+  File.open(t.name, 'w') { |f| f.puts HOE.spec.to_yaml }
+end
+
+desc "Generate or update the standalone gemspec file for the project"
+task :gemspec => ["#{HOE.spec.name}.gemspec"]
+
