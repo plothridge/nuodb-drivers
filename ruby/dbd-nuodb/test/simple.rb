@@ -37,6 +37,14 @@ class TC_Nuodb < Test::Unit::TestCase
     username = ENV['NUODB_USERNAME'] || 'cloud'
     password = ENV['NUODB_PASSWORD'] || 'user'
     @dbh = DBI.connect("DBI:NuoDB:#{schema}:#{hostname}", username, password)
+
+    @dbh.do("DROP TABLE IF EXISTS EMPLOYEE")
+    @dbh.do("CREATE TABLE EMPLOYEE (
+               FIRST_NAME CHAR(20) NOT NULL,
+               LAST_NAME CHAR(20),
+               AGE INT,
+               SEX CHAR(1),
+               INCOME DOUBLE )" );
   end
 
   def teardown()
@@ -51,14 +59,6 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   def test_insert()
-    @dbh.do("DROP TABLE IF EXISTS EMPLOYEE")
-
-    @dbh.do("CREATE TABLE EMPLOYEE (
-               FIRST_NAME CHAR(20) NOT NULL,
-               LAST_NAME CHAR(20),
-               AGE INT,  
-               SEX CHAR(1),
-               INCOME DOUBLE )" );
 
     @dbh.do( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, AGE, SEX, INCOME)
           VALUES ('Mac', 'Mohan', 20, 'M', 2000)" )
@@ -76,13 +76,6 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_insert_params()
     assert(@dbh.convert_types)
-    @dbh.do("DROP TABLE IF EXISTS EMPLOYEE")
-    @dbh.do("CREATE TABLE EMPLOYEE (
-               FIRST_NAME CHAR(20) NOT NULL,
-               LAST_NAME CHAR(20),
-               AGE INT,  
-               SEX CHAR(1),
-               INCOME DOUBLE )" );
 
     sth = @dbh.prepare( "INSERT INTO EMPLOYEE(FIRST_NAME,
                    LAST_NAME, 
@@ -113,6 +106,48 @@ class TC_Nuodb < Test::Unit::TestCase
       assert_equal 'Statement was already closed!', e.message
     end
 
+  end
+
+  def test_columns()
+
+    c = @dbh.columns('employee')
+    assert_not_nil c
+    assert_equal 5, c.size
+    assert_equal( { :name=>'FIRST_NAME',
+                    :dbi_type=>DBI::Type::Varchar,
+                    :precision=>20, :scale=>0},
+                  c[0])
+    assert_equal( { :name=>'LAST_NAME',
+                    :dbi_type=>DBI::Type::Varchar,
+                    :precision=>20, :scale=>0},
+                  c[1])
+    assert_equal( { :name=>'AGE',
+                    :dbi_type=>DBI::Type::Integer,
+                    :precision=>9, :scale=>0},
+                  c[2])
+    assert_equal( { :name=>'SEX',
+                    :dbi_type=>DBI::Type::Varchar,
+                    :precision=>1, :scale=>0},
+                  c[3])
+    assert_equal( { :name=>'INCOME',
+                    :dbi_type=>DBI::Type::Float,
+                    :precision=>15, :scale=>0},
+                  c[4])
+
+    c = @dbh.columns 'test.employee'
+    assert_not_nil c
+    assert_equal 5, c.size
+
+    begin
+      @dbh.columns 'a.b.c'
+      fail 'columns did not raise'
+    rescue RuntimeError => e
+      assert_equal 'Invalid table name: a.b.c', e.message
+    end
+  end
+
+  def test_ping()
+    assert_equal true, @dbh.ping
   end
 
 end

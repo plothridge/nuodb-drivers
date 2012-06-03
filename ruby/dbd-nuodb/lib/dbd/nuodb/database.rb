@@ -35,30 +35,63 @@ module DBI::DBD::NuoDB
       @conn = conn
     end
 
-    # REQUIRED METHODS TO IMPLEMENT
-
     def disconnect
       @conn = nil # TODO do we need an explicit disconnect method?
     end
 
     def ping
-      raise NotImplementedError
+      @conn.ping
     end
 
     def tables
-      raise NotImplementedError
+      raise NotImplementedError # TODO implement tables
     end
 
     def columns(table)
-      raise NotImplementedError
+      # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/BaseDatabase.html#M000244
+      # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/ColumnInfo.html
+
+      sql = 'SELECT field,datatype,precision,scale from system.fields where schema=? and tablename=?'
+
+      stmt = @conn.createPreparedStatement sql
+      schema_name, table_name = split_table_name table
+      stmt.setString 1, schema_name
+      stmt.setString 2, table_name
+
+      rset = stmt.executeQuery
+      cols = []
+      while rset.next
+        name = rset.getString 1
+        type = rset.getInteger 2
+        case type
+        when 2
+          dbi_type = DBI::Type::Varchar
+        when 3
+          dbi_type = DBI::Type::Varchar
+        when 5
+          dbi_type = DBI::Type::Integer
+        when 8
+          dbi_type = DBI::Type::Float
+        when 15
+          dbi_type = DBI::Type::Timestamp
+        else
+          raise "unknown type #{type} for column #{name}"
+        end
+
+        precision = rset.getInteger 3
+        scale = rset.getInteger 4
+        cols << DBI::ColumnInfo.new({ :name => name,
+                                      :dbi_type => dbi_type,
+                                      :precision => precision,
+                                      :scale => scale })
+      end
+      cols
     end
 
-    def prepare(statement)
-      stmt = @conn.createPreparedStatement statement
+    def prepare(sql)
+      stmt = @conn.createPreparedStatement sql
       return Statement.new stmt
     end
-
-    # OPTIONAL METHODS TO IMPLEMENT
 
     def commit
       @conn.commit
@@ -67,8 +100,6 @@ module DBI::DBD::NuoDB
     def rollback
       @conn.rollback
     end
-
-    # OTHER METHODS
 
     def do(statement, *bindvars)
       stmt = @conn.createPreparedStatement statement
@@ -79,6 +110,23 @@ module DBI::DBD::NuoDB
     # Set an attribute on the database handle.
     #
     def []=(attr, value)
+    end
+
+    private
+
+    def split_table_name(table)
+      name_parts = table.split '.'
+      case name_parts.length
+      when 1
+        schema_name = @conn.getSchema
+        table_name = name_parts[0]
+      when 2
+        schema_name = name_parts[0]
+        table_name = name_parts[1]
+      else
+        raise "Invalid table name: #{table}"
+      end
+      [schema_name, table_name]
     end
 
   end
