@@ -93,8 +93,6 @@ EOS
 
     assert !result.next
 
-
-
     meta = result.getMetaData
     assert_not_nil meta
     assert_equal 3, meta.getColumnCount
@@ -107,8 +105,37 @@ EOS
     assert_equal "S", meta.getColumnName(3)
     assert_equal :SQL_STRING, meta.getType(3)
 
-    # TODO SqlConnection.createPreparedStatement
-    # TODO SqlStatement.executeQuery
+  end
+
+  def test_prepared_statement()
+    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    stmt = con.createStatement
+    assert_not_nil stmt
+    stmt.execute "drop table test_nuodb if exists"
+    stmt.execute <<EOS
+create table test_nuodb (
+  i integer,
+  d double,
+  s string,
+  primary key (i))
+EOS
+
+    stmt.execute "insert into test_nuodb(i,d,s) values(10,1.1,'one')"
+    stmt.execute "insert into test_nuodb(i,d,s) values(20,2.2,'two')"
+
+    query = con.createPreparedStatement "select * from test_nuodb where i=?"
+    assert_not_nil query
+    query.setInteger 1, 10
+    
+    r = query.executeQuery
+    assert_not_nil r
+
+    assert_equal true, r.next
+    assert_equal 10, r.getInteger(1)
+    assert_equal 1.1, r.getDouble(2)
+    assert_equal 'one', r.getString(3)
+
+    assert_equal false, r.next
 
   end
 
