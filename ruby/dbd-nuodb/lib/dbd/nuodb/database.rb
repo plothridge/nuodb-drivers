@@ -44,14 +44,22 @@ module DBI::DBD::NuoDB
     end
 
     def tables
-      raise NotImplementedError # TODO implement tables
+      sql = 'select tablename from system.tables where schema = ?'
+      stmt = @conn.createPreparedStatement sql
+      stmt.setString 1, @conn.getSchema
+      rset = stmt.executeQuery
+      tables = []
+      while rset.next
+        tables << rset.getString(1)
+      end
+      tables
     end
 
     def columns(table)
       # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/BaseDatabase.html#M000244
       # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/ColumnInfo.html
 
-      sql = 'SELECT field,datatype,precision,scale from system.fields where schema=? and tablename=?'
+      sql = 'select field,datatype,precision,scale from system.fields where schema=? and tablename=?'
 
       stmt = @conn.createPreparedStatement sql
       schema_name, table_name = split_table_name table
@@ -74,6 +82,8 @@ module DBI::DBD::NuoDB
           dbi_type = DBI::Type::Float
         when 15
           dbi_type = DBI::Type::Timestamp
+        when 22
+          dbi_type = DBI::Type::Boolean
         else
           raise "unknown type #{type} for column #{name}"
         end

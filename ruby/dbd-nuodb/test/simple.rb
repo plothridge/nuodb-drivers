@@ -108,6 +108,12 @@ class TC_Nuodb < Test::Unit::TestCase
 
   end
 
+  def test_tables()
+    c = @dbh.tables
+    assert_not_nil c
+    assert_equal true, c.include?('EMPLOYEE')
+  end
+
   def test_columns()
 
     c = @dbh.columns('employee')
