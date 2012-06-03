@@ -63,6 +63,12 @@ class TC_Nuodb < Test::Unit::TestCase
     stmt.execute "select 1 from dual"
   end
 
+  def test_get_schema()
+    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    s = con.getSchema
+    assert_equal @schema.upcase, s
+  end
+
   def test_auto_commit_flag()
     con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
     assert con.hasAutoCommit

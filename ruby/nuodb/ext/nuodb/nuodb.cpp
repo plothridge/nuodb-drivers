@@ -482,7 +482,17 @@ class SqlConnection
             DEFINE_METHOD(rollback, 0);
             DEFINE_METHOD(getMetaData, 0);
             DEFINE_METHOD(ping, 0);
+	    DEFINE_METHOD(getSchema, 0);
         }
+
+  static VALUE getSchema(VALUE self)
+  {
+    try {
+      return rb_str_new2(asPtr(self)->getSchema());
+    } catch (SQLException & e) {
+      rb_raise(rb_eRuntimeError, "getSchema() failed: %s", e.getText());
+    }
+  }
 
     static VALUE ping(VALUE self)
         {
