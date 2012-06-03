@@ -59,7 +59,7 @@ module DBI::DBD::NuoDB
       # TODO this is inefficient, but I want to avoid poking at the statement text
       begin
         @result = @stmt.executeQuery
-	@column_info = self.column_info
+        @column_info = self.column_info
       rescue RuntimeError
         @stmt.execute
         @result = nil
@@ -112,8 +112,8 @@ module DBI::DBD::NuoDB
     # Provides result-set column information as an array of hashes. DBD Required.
     #
     def column_info
-      retval = []
       return [] if @result.nil?
+      retval = []
       meta = @result.getMetaData
       count = meta.getColumnCount
       for i in 1..count
@@ -134,16 +134,16 @@ module DBI::DBD::NuoDB
         end
                      
         retval << {
-          'name'     => meta.getColumnName(i),
+          'name' => meta.getColumnName(i),
           'sql_type' => type,
-          'dbi_type' => dbi_type
-          # TODO 'type_name' => '???',
-          # TODO 'precision' => '???',
-          # TODO 'scale'     => '???',
-          # TODO 'nullable'  => '???',
-          # TODO 'indexed'   => '???',
-          # TODO 'primary'   => '???',
-          # TODO 'unique'    => '???'
+          'dbi_type' => dbi_type,
+          'type_name' => meta.getColumnTypeName(i),
+          'precision' => meta.getPrecision(i),
+          'scale'     => meta.getScale(i),
+          'nullable'  => meta.isNullable(i)
+          #'indexed'   => meta.isIndexed(i),
+          #'primary'   => meta.isPrimary(i),
+          #'unique'    => meta.isUnique(i)
         }
       end
       retval

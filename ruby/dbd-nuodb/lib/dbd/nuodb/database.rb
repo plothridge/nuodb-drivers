@@ -40,7 +40,7 @@ module DBI::DBD::NuoDB
     end
 
     def ping
-      @conn.ping
+	@conn.ping
     end
 
     def tables
