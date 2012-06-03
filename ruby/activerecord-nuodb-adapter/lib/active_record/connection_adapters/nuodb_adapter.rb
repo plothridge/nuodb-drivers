@@ -248,6 +248,59 @@ module ActiveRecord
         password = @config[:password]
         @connection = DBI.connect("DBI:NuoDB:#{database}:#{hostname}", username, password)
       end
+
+      #
+      # schema
+      #
+
+      public
+
+      def table_exists?(table_name)
+        tables.include?(table_name.to_s)
+      end
+
+      def tables()
+        @connection.tables
+      end
+
+      def columns(table_name, name = nil)
+        @connection.columns(table_name).map {|ci|
+          # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/ColumnInfo.html
+          # TODO copy null value from ci
+          Column.new(ci.name, nil, ci.dbi_type, true)
+        }
+      end
+
+      def native_database_types
+        @native_database_types ||= initialize_native_database_types.freeze
+      end
+
+      protected
+      
+      def initialize_native_database_types
+        {
+          :primary_key  => 'int not null generated always primary key',
+          :string       => { :name => 'varchar', :limit => 255  },
+          :text         => { :name => 'varchar' },
+          :integer      => { :name => 'integer' },
+          :float        => { :name => 'float', :limit => 8 },
+          :decimal      => { :name => 'decimal' },
+          :datetime     => { :name => 'datetime' },
+          :timestamp    => { :name => 'datetime' },
+          :time         => { :name => 'time' },
+          :date         => { :name => 'date' },
+          :binary       => { :name => 'binary' },
+          :boolean      => { :name => 'boolean'},
+          :char         => { :name => 'char' },
+          :varchar_max  => { :name => 'varchar(max)' },
+          :nchar        => { :name => 'nchar' },
+          :nvarchar     => { :name => 'nvarchar', :limit => 255 },
+          :nvarchar_max => { :name => 'nvarchar(max)' },
+          :ntext        => { :name => 'ntext' },
+          :ss_timestamp => { :name => 'timestamp' }
+        }
+      end
+        
       
     end #class NuoDBAdapter < AbstractAdapter
     

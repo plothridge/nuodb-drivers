@@ -37,7 +37,7 @@ module DBI::DBD::NuoDB
     #
     # Bind a parameter to a statement. DBD Required.
     #
-    def bind_param(param, value, attribs)
+    def bind_param(param, value, attribs = nil)
       case value
       when String
         @stmt.setString param, value
@@ -87,16 +87,16 @@ module DBI::DBD::NuoDB
         retval = []
         for i in 1..count
           type = meta.getType i
-          case
-          when type == :SQL_INTEGER
+          case type
+          when :SQL_INTEGER
             retval << @result.getInteger(i)
-          when type == :SQL_DOUBLE
+          when :SQL_DOUBLE
             retval << @result.getDouble(i)
-          when type == :SQL_STRING
+          when :SQL_STRING
             retval << @result.getString(i)
-          when type == :SQL_DATE
+          when :SQL_DATE
             retval << @result.getDate(i)
-          when type == :SQL_CHAR
+          when :SQL_CHAR
             retval << @result.getChar(i)
           else
             raise "unknown type #{type} for column #{i}"
@@ -118,16 +118,16 @@ module DBI::DBD::NuoDB
       count = meta.getColumnCount
       for i in 1..count
         type = meta.getType i
-        case
-        when type == :SQL_INTEGER
+        case type
+        when :SQL_INTEGER
           dbi_type = DBI::Type::Integer
-        when type == :SQL_DOUBLE
+        when :SQL_DOUBLE
           dbi_type = DBI::Type::Float
-        when type == :SQL_STRING
+        when :SQL_STRING
           dbi_type = DBI::Type::Varchar
-        when type == :SQL_DATE
+        when :SQL_DATE
           dbi_type = DBI::Type::Timestamp
-        when type == :SQL_CHAR
+        when :SQL_CHAR
           dbi_type = DBI::Type::Varchar
         else
           raise "unknown type #{type} for column #{i}"
