@@ -499,11 +499,11 @@ class SqlConnection
             try 
 				{
 				asPtr(self)->ping();
-				return Qnil;
+				return Qtrue;
 				} 
 			catch (SQLException & e) 
 				{
-				rb_raise(rb_eRuntimeError, "ping failed: %s", e.getText());
+				  return Qfalse;
 				}
         }
 

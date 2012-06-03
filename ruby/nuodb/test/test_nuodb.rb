@@ -69,6 +69,11 @@ class TC_Nuodb < Test::Unit::TestCase
     assert_equal @schema.upcase, s
   end
 
+  def test_ping()
+    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    assert_equal true, con.ping
+  end
+
   def test_auto_commit_flag()
     con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
     assert con.hasAutoCommit
