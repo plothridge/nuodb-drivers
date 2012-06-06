@@ -267,7 +267,7 @@ module ActiveRecord
         @connection.columns(table_name).map {|ci|
           # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/ColumnInfo.html
           # TODO copy null value from ci
-          Column.new(ci.name, nil, ci.dbi_type, true)
+          Column.new(ci.name.downcase, nil, ci.dbi_type, true)
         }
       end
 
