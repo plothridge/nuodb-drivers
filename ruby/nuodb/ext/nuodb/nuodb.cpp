@@ -101,6 +101,7 @@ static RT* asPtr(VALUE value)					\
 #include "Statement.h"
 #include "TimeClass.h"
 #include "Timestamp.h"
+#include "SqlTimestamp.h"
 
 using namespace NuoDB;
 
@@ -352,7 +353,20 @@ VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
 	try 
 		{
 		Date* date = asPtr(self)->getDate(column);
-		return  ULL2NUM(date->getMilliseconds());
+		//return  ULL2NUM(date->getMilliseconds());
+		//return  ULL2NUM(date->getSeconds());
+		// Convert seconds or milliseconds into datetime string for Ruby DateTime object
+		// Would rather not do this but is seems DateTime only takes and parses a string
+		// Please NOTE that something is not correct here.  SqlTimestamp take millis
+		// SqlTimestamp(int64_t millis);
+		// However, it works correctly when I give it seconds so either getSeconds is returning millis
+		// or SqlTimestamp wants seconds.  Either way it is a bug and will file a JIRA to track.
+		SqlTimestamp timestamp(date->getSeconds());
+		struct tm utc;	
+		timestamp.getTimestamp(&utc);
+		char buffer[250];
+		::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
+		return rb_str_new2(buffer);
 		} 
 	catch (SQLException & e) 
 		{

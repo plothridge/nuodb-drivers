@@ -32,6 +32,7 @@ require 'pp'
 class TC_Nuodb < Test::Unit::TestCase
 
   def setup()
+
     schema = ENV['NUODB_SCHEMA'] || 'test'
     hostname = ENV['NUODB_HOSTNAME'] || 'localhost'
     username = ENV['NUODB_USERNAME'] || 'cloud'
@@ -42,6 +43,7 @@ class TC_Nuodb < Test::Unit::TestCase
     @dbh.do("CREATE TABLE EMPLOYEE (
                FIRST_NAME CHAR(20) NOT NULL,
                LAST_NAME CHAR(20),
+	       HIRE DATE,
                AGE INT,
                SEX CHAR(1),
                INCOME DOUBLE )" );
@@ -60,18 +62,19 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_insert()
 
-    @dbh.do( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, AGE, SEX, INCOME)
-          VALUES ('Mac', 'Mohan', 20, 'M', 2000)" )
+    @dbh.do( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, HIRE, AGE, SEX, INCOME)
+          VALUES ('Mac', 'Mohan', '6/1/2012', 20, 'M', 2000)" )
 
     row = @dbh.select_one("SELECT * FROM EMPLOYEE")
 
     assert_not_nil row
-    assert_equal 5, row.length
+    assert_equal 6, row.length
     assert_equal 'Mac', row[0]
     assert_equal 'Mohan', row[1]
-    assert_equal 20, row[2]
-    assert_equal 'M', row[3]
-    assert_equal 2000.0, row[4]
+    assert_equal '6/1/2012', row[2].strftime("%-m/%-d/%Y")
+    assert_equal 20, row[3]
+    assert_equal 'M', row[4]
+    assert_equal 2000.0, row[5]
   end
 
   def test_insert_params()
@@ -79,12 +82,13 @@ class TC_Nuodb < Test::Unit::TestCase
 
     sth = @dbh.prepare( "INSERT INTO EMPLOYEE(FIRST_NAME,
                    LAST_NAME, 
+		   HIRE,
                    AGE, 
  		   SEX, 
 		   INCOME)
-                   VALUES (?, ?, ?, ?, ?)" )
-    sth.execute('Fred', 'Flintstone', 43, 'M', 2300.0)
-    sth.execute('Betty', 'Rubble', 38, 'F', 1000.0)
+                   VALUES (?,?, ?, ?, ?, ?)" )
+    sth.execute('Fred', 'Flintstone', '6/1/2012',43, 'M', 2300.0)
+    sth.execute('Betty', 'Rubble', '6/1/2012', 38, 'F', 1000.0)
     sth.finish
 
     # this query produces one record
@@ -93,7 +97,14 @@ class TC_Nuodb < Test::Unit::TestCase
 
     # check first record
     result = sth.fetch
-    assert_equal ['Fred', 'Flintstone', 43, 'M', 2300.0], result
+    # I'm sure there is some cool Ruby syntax for this but don't know it
+    
+    assert_equal result[0], 'Fred'
+    assert_equal result[1], 'Flintstone'
+    assert_equal result[2].strftime("%-m/%-d/%Y"), '6/1/2012'
+    assert_equal result[3], 43
+    assert_equal result[4], 'M'
+    assert_equal result[5], 2300.0
 
     # ensure no more records
     assert_nil sth.fetch
@@ -118,7 +129,7 @@ class TC_Nuodb < Test::Unit::TestCase
 
     c = @dbh.columns('employee')
     assert_not_nil c
-    assert_equal 5, c.size
+    assert_equal 6, c.size
     assert_equal( { :name=>'FIRST_NAME',
                     :dbi_type=>DBI::Type::Varchar,
                     :precision=>20, :scale=>0},
@@ -127,22 +138,26 @@ class TC_Nuodb < Test::Unit::TestCase
                     :dbi_type=>DBI::Type::Varchar,
                     :precision=>20, :scale=>0},
                   c[1])
+    assert_equal( { :name=>'HIRE',
+                    :dbi_type=>DBI::Type::Timestamp,
+                    :precision=>10,:scale=>0},
+                  c[2])
     assert_equal( { :name=>'AGE',
                     :dbi_type=>DBI::Type::Integer,
                     :precision=>9, :scale=>0},
-                  c[2])
+                  c[3])
     assert_equal( { :name=>'SEX',
                     :dbi_type=>DBI::Type::Varchar,
                     :precision=>1, :scale=>0},
-                  c[3])
+                  c[4])
     assert_equal( { :name=>'INCOME',
                     :dbi_type=>DBI::Type::Float,
                     :precision=>15, :scale=>0},
-                  c[4])
+                  c[5])
 
     c = @dbh.columns 'test.employee'
     assert_not_nil c
-    assert_equal 5, c.size
+    assert_equal 6, c.size
 
     begin
       @dbh.columns 'a.b.c'

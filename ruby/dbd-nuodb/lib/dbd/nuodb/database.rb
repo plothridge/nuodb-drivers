@@ -58,6 +58,8 @@ module DBI::DBD::NuoDB
     def columns(table)
       # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/BaseDatabase.html#M000244
       # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/ColumnInfo.html
+      # Please note here that the type returned from the system.fields table is different than the JDBC types
+      # returned in getMetaData
 
       sql = 'select field,datatype,precision,scale from system.fields where schema=? and tablename=?'
 
@@ -80,6 +82,10 @@ module DBI::DBD::NuoDB
           dbi_type = DBI::Type::Integer
         when 8
           dbi_type = DBI::Type::Float
+        when 9
+          dbi_type = DBI::Type::Timestamp
+        when 10
+          dbi_type = DBI::Type::Timestamp
         when 15
           dbi_type = DBI::Type::Timestamp
         when 22

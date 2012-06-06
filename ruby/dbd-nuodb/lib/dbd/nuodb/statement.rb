@@ -70,8 +70,6 @@ module DBI::DBD::NuoDB
     end
 
     #
-    # Close the statement and any result cursors. DBD Required.
-    #
     def finish
       @result = nil;
       @stmt = nil;
@@ -81,6 +79,7 @@ module DBI::DBD::NuoDB
     # Fetch the next row in the result set. DBD Required.
     #
     def fetch
+    #  return [] if @result.nil?
       if @result.next
         meta = @result.getMetaData
         count = meta.getColumnCount
