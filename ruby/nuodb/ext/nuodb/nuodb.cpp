@@ -149,6 +149,7 @@ class SqlResultSet
 	static VALUE next(VALUE self);
 	static VALUE getColumnCount(VALUE self);
 	static VALUE getMetaData(VALUE self);
+	static VALUE getBoolean(VALUE self, VALUE columnValue);
 	static VALUE getInteger(VALUE self, VALUE columnValue);
 	static VALUE getDouble(VALUE self, VALUE columnValue);
 	static VALUE getString(VALUE self, VALUE columnValue);
@@ -169,6 +170,7 @@ class SqlStatement
     static void init(VALUE module);
     static VALUE execute(VALUE self, VALUE sqlValue);
     static VALUE executeQuery(VALUE self, VALUE sqlValue);
+    static VALUE getUpdateCount(VALUE self);
 };
 
 WRAPPER_DEFINITION(SqlStatement);
@@ -180,11 +182,13 @@ class SqlPreparedStatement
     WRAPPER_COMMON(SqlPreparedStatement, PreparedStatement);
 
     static void init(VALUE module);
+    static VALUE setBoolean(VALUE self, VALUE indexValue, VALUE valueValue);
     static VALUE setInteger(VALUE self, VALUE indexValue, VALUE valueValue);
     static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue);
     static VALUE setString(VALUE self, VALUE indexValue, VALUE valueValue);
     static VALUE execute(VALUE self);
     static VALUE executeQuery(VALUE self);
+    static VALUE getUpdateCount(VALUE self);
 };
 
 WRAPPER_DEFINITION(SqlPreparedStatement);
@@ -287,6 +291,7 @@ void SqlResultSet::init(VALUE module)
 	INIT_TYPE("ResultSet");
 	DEFINE_METHOD(next, 0);
 	DEFINE_METHOD(getMetaData, 0);
+	DEFINE_METHOD(getBoolean, 1);
 	DEFINE_METHOD(getInteger, 1);
 	DEFINE_METHOD(getDouble, 1);
 	DEFINE_METHOD(getString, 1);
@@ -318,6 +323,17 @@ VALUE SqlResultSet::getMetaData(VALUE self)
 		{
 		rb_raise(rb_eRuntimeError, "getMetaData failed: %s", e.getText());
 		}
+}
+
+VALUE SqlResultSet::getBoolean(VALUE self, VALUE columnValue)
+{
+  int column = NUM2UINT(columnValue);
+  try {
+    bool value = asPtr(self)->getBoolean(column);
+    return value ? T_TRUE : T_FALSE;
+  } catch (SQLException & e) {
+    rb_raise(rb_eRuntimeError, "getBoolean(%d) failed: %s", column, e.getText());
+  }
 }
 
 VALUE SqlResultSet::getInteger(VALUE self, VALUE columnValue)
@@ -589,6 +605,7 @@ void SqlStatement::init(VALUE module)
 	INIT_TYPE("Statement");
 	DEFINE_METHOD(execute, 1);
 	DEFINE_METHOD(executeQuery, 1);
+	DEFINE_METHOD(getUpdateCount, 0);
 }
 
 VALUE SqlStatement::execute(VALUE self, VALUE sqlValue)
@@ -618,16 +635,40 @@ VALUE SqlStatement::executeQuery(VALUE self, VALUE sqlValue)
 		}
 }
 
+VALUE SqlStatement::getUpdateCount(VALUE self)
+{
+  try {
+    return INT2NUM(asPtr(self)->getUpdateCount());
+  } catch (SQLException & e) {
+    rb_raise(rb_eRuntimeError, "getUpdateCount() failed: %s", e.getText());
+  }
+}
+
 //------------------------------------------------------------------------------
 
 void SqlPreparedStatement::init(VALUE module)
 {
 	INIT_TYPE("PreparedStatement");
+	DEFINE_METHOD(setBoolean, 2);
 	DEFINE_METHOD(setInteger, 2);
 	DEFINE_METHOD(setDouble, 2);
 	DEFINE_METHOD(setString, 2);
 	DEFINE_METHOD(execute, 0);
 	DEFINE_METHOD(executeQuery, 0);
+	DEFINE_METHOD(getUpdateCount, 0);
+}
+
+VALUE SqlPreparedStatement::setBoolean(VALUE self, VALUE indexValue, VALUE valueValue)
+{
+  int32_t index = NUM2UINT(indexValue);
+  bool value = valueValue ? true : false;
+  try {
+      asPtr(self)->setInt(index, value);
+      return Qnil;
+  } catch (SQLException & e) {
+      rb_raise(rb_eRuntimeError, "setBoolean(%d, %s) failed: %s",
+	       index, (value ? "true" : "false"), e.getText());
+  }
 }
 
 VALUE SqlPreparedStatement::setInteger(VALUE self, VALUE indexValue, VALUE valueValue)
@@ -698,6 +739,15 @@ VALUE SqlPreparedStatement::executeQuery(VALUE self)
 		{
 		rb_raise(rb_eRuntimeError, "executeQuery failed: %s", e.getText());
 		}
+}
+
+VALUE SqlPreparedStatement::getUpdateCount(VALUE self)
+{
+  try {
+    return INT2NUM(asPtr(self)->getUpdateCount());
+  } catch (SQLException & e) {
+    rb_raise(rb_eRuntimeError, "getUpdateCount() failed: %s", e.getText());
+  }
 }
 
 //------------------------------------------------------------------------------

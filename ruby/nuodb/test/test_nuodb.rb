@@ -93,20 +93,22 @@ create table test_nuodb (
   i integer,
   d double,
   s string,
+  b boolean,
   primary key (i))
 EOS
 
-    query = con.createStatement
-    assert_not_nil query
+    stmt = con.createStatement
+    assert_not_nil stmt
 
-    result = query.executeQuery "select * from test_nuodb"
+    result = stmt.executeQuery "select * from test_nuodb"
+    assert_equal (-1), stmt.getUpdateCount
     assert_not_nil result
-
-    assert !result.next
+    assert_equal false, result.next
 
     meta = result.getMetaData
     assert_not_nil meta
-    assert_equal 3, meta.getColumnCount
+    assert_equal 4, meta.getColumnCount
+
     assert_equal "I", meta.getColumnName(1)
     assert_equal :SQL_INTEGER, meta.getType(1)
 
@@ -115,6 +117,29 @@ EOS
 
     assert_equal "S", meta.getColumnName(3)
     assert_equal :SQL_STRING, meta.getType(3)
+
+    assert_equal "B", meta.getColumnName(4)
+    assert_equal :SQL_BOOLEAN, meta.getType(4)
+
+    stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
+    assert_equal 1, stmt.getUpdateCount
+
+    stmt.execute "update test_nuodb set s='update' where i=999"
+    assert_equal (-1), stmt.getUpdateCount
+
+    stmt.execute "update test_nuodb set s='update' where i=10"
+    assert_equal 1, stmt.getUpdateCount
+
+    r = stmt.executeQuery "select * from test_nuodb"
+    assert_not_nil r
+    assert_equal true, r.next
+    assert_equal 10, r.getInteger(1)
+    assert_equal 1.1, r.getDouble(2)
+    assert_equal 'update', r.getString(3)
+    # TODO: ResultSet::getBoolean SEGV
+    #assert_equal true, r.getBoolean(4)
+
+    assert_equal false, r.next
 
   end
 
@@ -128,50 +153,64 @@ create table test_nuodb (
   i integer,
   d double,
   s string,
+  b boolean,
   primary key (i))
 EOS
 
-    stmt.execute "insert into test_nuodb(i,d,s) values(10,1.1,'one')"
-    stmt.execute "insert into test_nuodb(i,d,s) values(20,2.2,'two')"
+    stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
+    stmt.execute "insert into test_nuodb(i,d,s,b) values(20,2.2,'two',false)"
 
     query = con.createPreparedStatement "select * from test_nuodb where i=?"
     assert_not_nil query
-    query.setInteger 1, 10
-    
-    r = query.executeQuery
-    assert_not_nil r
 
+    assert_equal (-1), query.getUpdateCount
+
+    query.setInteger 1, 10
+    r = query.executeQuery
+    assert_equal (-1), query.getUpdateCount
+    assert_not_nil r
     assert_equal true, r.next
     assert_equal 10, r.getInteger(1)
     assert_equal 1.1, r.getDouble(2)
     assert_equal 'one', r.getString(3)
+    # TODO: ResultSet::getBoolean SEGV
+    # assert_equal true, r.getBoolean(4)
 
     assert_equal false, r.next
 
+    query.setInteger 1, 20
+    r = query.executeQuery
+    assert_not_nil r
+    assert_equal true, r.next
+    assert_equal 20, r.getInteger(1)
+    assert_equal 2.2, r.getDouble(2)
+    assert_equal 'two', r.getString(3)
+    # TODO: ResultSet::getBoolean SEGV
+    # assert_equal false, r.getBoolean(4)
+
+    assert_equal false, r.next
+
+    update = con.createPreparedStatement 'update test_nuodb set s=? where i=?'
+    assert_not_nil update
+    update.setString 1, 'change'
+
+    update.setInteger 2, 999
+    update.execute
+    assert_equal (-1), update.getUpdateCount
+
+    update.setInteger 2, 10
+    update.execute
+    assert_equal 1, update.getUpdateCount
+
+    query.setInteger 1, 10
+    r = query.executeQuery
+    assert_not_nil r
+    assert_equal true, r.next
+    assert_equal 10, r.getInteger(1)
+    assert_equal 'change', r.getString(3)
+    assert_equal 1, update.getUpdateCount
+
   end
-
-  # TODO SqlConnection.commit
-  # TODO SqlConnection.rollback
-
-  # SqlResultSetWrapper
-  # TODO bool next();
-  # TODO size_t getColumnCount() const;
-  # TODO SqlColumnMetaData & getMetaData(size_t column) const;
-  # TODO int32_t getInteger(size_t column) const;
-  # TODO double getDouble(size_t column) const;
-  # TODO char const * getString(size_t column) const;
-  # TODO SqlDate const * getDate(size_t column) const;
-
-  # SqlColumnMetaDataWrapper
-  # TODO char const * getColumnName() const;
-  # TODO SqlType getType() const;
-
-  # SqlPreparedStatementWrapper
-  # TODO void setInteger(size_t index, int32_t value);
-  # TODO void setDouble(size_t index, double value);
-  # TODO void setString(size_t index, char const * value);
-  # TODO void execute();
-  # TODO SqlResultSet & executeQuery();
 
 end
 
