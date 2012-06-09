@@ -102,6 +102,8 @@ static RT* asPtr(VALUE value)					\
 #include "TimeClass.h"
 #include "Timestamp.h"
 #include "SqlTimestamp.h"
+#include "SqlDate.h"
+#include "SqlTime.h"
 
 using namespace NuoDB;
 
@@ -151,6 +153,8 @@ class SqlResultSet
 	static VALUE getDouble(VALUE self, VALUE columnValue);
 	static VALUE getString(VALUE self, VALUE columnValue);
 	static VALUE getDate(VALUE self, VALUE columnValue);
+	static VALUE getTime(VALUE self, VALUE columnValue);
+	static VALUE getTimestamp(VALUE self, VALUE columnValue);
 	static VALUE getChar(VALUE self, VALUE columnValue);
 };
 
@@ -287,6 +291,8 @@ void SqlResultSet::init(VALUE module)
 	DEFINE_METHOD(getDouble, 1);
 	DEFINE_METHOD(getString, 1);
 	DEFINE_METHOD(getDate, 1);
+	DEFINE_METHOD(getTime, 1);
+	DEFINE_METHOD(getTimestamp, 1);
 	DEFINE_METHOD(getChar, 1);
 }
 
@@ -346,7 +352,6 @@ VALUE SqlResultSet::getString(VALUE self, VALUE columnValue)
 	rb_raise(rb_eRuntimeError, "getString(%d) failed: %s", column, e.getText());
 	}
 }
-
 VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
@@ -361,7 +366,52 @@ VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
 		// SqlTimestamp(int64_t millis);
 		// However, it works correctly when I give it seconds so either getSeconds is returning millis
 		// or SqlTimestamp wants seconds.  Either way it is a bug and will file a JIRA to track.
-		SqlTimestamp timestamp(date->getSeconds());
+		//SqlTimestamp timestamp(date->getSeconds());
+		//struct tm utc;	
+		//timestamp.getTimestamp(&utc);
+		//char buffer[250];
+		//::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
+		SqlDate timestamp(date->getSeconds());
+		struct tm utc;	
+		timestamp.getDate(&utc);
+		char buffer[250];
+		::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
+		return rb_str_new2(buffer);
+		} 
+	catch (SQLException & e) 
+		{
+		rb_raise(rb_eRuntimeError, "getDate(%d) failed: %s", column, e.getText());
+		}
+}
+
+VALUE SqlResultSet::getTime(VALUE self, VALUE columnValue)
+{
+	int column = NUM2UINT(columnValue);
+	try 
+		{
+		Time* time = asPtr(self)->getTime(column);
+		//SqlTime timestamp(time->getSeconds());
+		SqlTime timestamp(time->getMilliseconds());
+		struct tm utc;	
+		timestamp.getTime(&utc);
+		char buffer[250];
+		::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
+		printf("buffer %s\n", buffer);
+		return rb_str_new2(buffer);
+		} 
+	catch (SQLException & e) 
+		{
+		rb_raise(rb_eRuntimeError, "getTime(%d) failed: %s", column, e.getText());
+		}
+}
+
+VALUE SqlResultSet::getTimestamp(VALUE self, VALUE columnValue)
+{
+	int column = NUM2UINT(columnValue);
+	try 
+		{
+		Timestamp* ts = asPtr(self)->getTimestamp(column);
+		SqlTimestamp timestamp(ts->getSeconds());
 		struct tm utc;	
 		timestamp.getTimestamp(&utc);
 		char buffer[250];
@@ -370,7 +420,7 @@ VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
 		} 
 	catch (SQLException & e) 
 		{
-		rb_raise(rb_eRuntimeError, "getDate(%d) dsfsadfas failed: %s", column, e.getText());
+		rb_raise(rb_eRuntimeError, "getTimestamp(%d) failed: %s", column, e.getText());
 		}
 }
 

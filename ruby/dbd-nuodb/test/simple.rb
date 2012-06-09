@@ -44,6 +44,8 @@ class TC_Nuodb < Test::Unit::TestCase
                FIRST_NAME CHAR(20) NOT NULL,
                LAST_NAME CHAR(20),
 	       HIRE DATE,
+	       INTERVIEW TIME,
+	       START TIMESTAMP,
                AGE INT,
                SEX CHAR(1),
                INCOME DOUBLE )" );
@@ -62,19 +64,21 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_insert()
 
-    @dbh.do( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, HIRE, AGE, SEX, INCOME)
-          VALUES ('Mac', 'Mohan', '6/1/2012', 20, 'M', 2000)" )
+    @dbh.do( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, HIRE, INTERVIEW, START, AGE, SEX, INCOME)
+          VALUES ('Mac', 'Mohan', '6/1/2012', '10:30:00', '6/6/2012 09:30:00', 20, 'M', 2000)" )
 
     row = @dbh.select_one("SELECT * FROM EMPLOYEE")
 
     assert_not_nil row
-    assert_equal 6, row.length
+    assert_equal 8, row.length
     assert_equal 'Mac', row[0]
     assert_equal 'Mohan', row[1]
     assert_equal '6/1/2012', row[2].strftime("%-m/%-d/%Y")
-    assert_equal 20, row[3]
-    assert_equal 'M', row[4]
-    assert_equal 2000.0, row[5]
+    assert_equal '10:30:00', row[3].strftime("%H:%M:%S")
+    assert_equal '6/1/2012', row[4].strftime("%-m/%-d/%Y")
+    assert_equal 20, row[5]
+    assert_equal 'M', row[6]
+    assert_equal 2000.0, row[7]
   end
 
   def test_insert_params()
@@ -83,12 +87,14 @@ class TC_Nuodb < Test::Unit::TestCase
     sth = @dbh.prepare( "INSERT INTO EMPLOYEE(FIRST_NAME,
                    LAST_NAME, 
 		   HIRE,
+		   INTERVIEW,
+	           START,
                    AGE, 
  		   SEX, 
 		   INCOME)
-                   VALUES (?,?, ?, ?, ?, ?)" )
-    sth.execute('Fred', 'Flintstone', '6/1/2012',43, 'M', 2300.0)
-    sth.execute('Betty', 'Rubble', '6/1/2012', 38, 'F', 1000.0)
+                   VALUES (?,?, ?,?, ?, ?, ?, ?)" )
+    sth.execute('Fred', 'Flintstone', '6/1/2012', '10:00:00', '6/7/2012 10:00:00', 43, 'M', 2300.0)
+    sth.execute('Betty', 'Rubble', '6/1/2012', '11:30:00', '6/8/2012 12:00:00', 38, 'F', 1000.0)
     sth.finish
 
     # this query produces one record
@@ -102,9 +108,11 @@ class TC_Nuodb < Test::Unit::TestCase
     assert_equal result[0], 'Fred'
     assert_equal result[1], 'Flintstone'
     assert_equal result[2].strftime("%-m/%-d/%Y"), '6/1/2012'
-    assert_equal result[3], 43
-    assert_equal result[4], 'M'
-    assert_equal result[5], 2300.0
+    assert_equal result[3].strftime("%H:%M:%S"), '10:00:00'
+    assert_equal result[4].strftime("%-m/%-d/%Y %H:%M:%S"), '6/7/2012 10:00:00'
+    assert_equal result[5], 43
+    assert_equal result[6], 'M'
+    assert_equal result[7], 2300.0
 
     # ensure no more records
     assert_nil sth.fetch
@@ -126,10 +134,9 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   def test_columns()
-
     c = @dbh.columns('employee')
     assert_not_nil c
-    assert_equal 6, c.size
+    assert_equal 8, c.size
     assert_equal( { :name=>'FIRST_NAME',
                     :dbi_type=>DBI::Type::Varchar,
                     :precision=>20, :scale=>0},
@@ -142,22 +149,30 @@ class TC_Nuodb < Test::Unit::TestCase
                     :dbi_type=>DBI::Type::Timestamp,
                     :precision=>10,:scale=>0},
                   c[2])
+    assert_equal( { :name=>'INTERVIEW',
+                    :dbi_type=>DBI::Type::Timestamp,
+                    :precision=>16,:scale=>0},
+                  c[3])
+    assert_equal( { :name=>'START',
+                    :dbi_type=>DBI::Type::Timestamp,
+                    :precision=>16,:scale=>0},
+                  c[4])
     assert_equal( { :name=>'AGE',
                     :dbi_type=>DBI::Type::Integer,
                     :precision=>9, :scale=>0},
-                  c[3])
+                  c[5])
     assert_equal( { :name=>'SEX',
                     :dbi_type=>DBI::Type::Varchar,
                     :precision=>1, :scale=>0},
-                  c[4])
+                  c[6])
     assert_equal( { :name=>'INCOME',
                     :dbi_type=>DBI::Type::Float,
                     :precision=>15, :scale=>0},
-                  c[5])
+                  c[7])
 
     c = @dbh.columns 'test.employee'
     assert_not_nil c
-    assert_equal 6, c.size
+    assert_equal 8, c.size
 
     begin
       @dbh.columns 'a.b.c'

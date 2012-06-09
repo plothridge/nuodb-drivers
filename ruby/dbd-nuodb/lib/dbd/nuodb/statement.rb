@@ -95,6 +95,10 @@ module DBI::DBD::NuoDB
             retval << @result.getString(i)
           when :SQL_DATE
             retval << @result.getDate(i)
+          when :SQL_TIME
+            retval << @result.getTime(i)
+          when :SQL_TIMESTAMP
+            retval << @result.getTimestamp(i)
           when :SQL_CHAR
             retval << @result.getChar(i)
           else
@@ -126,8 +130,16 @@ module DBI::DBD::NuoDB
           dbi_type = DBI::Type::Varchar
         when :SQL_DATE
           dbi_type = DBI::Type::Timestamp
+        when :SQL_TIME
+          dbi_type = DBI::Type::Timestamp
+        when :SQL_TIMESTAMP
+          dbi_type = DBI::Type::Timestamp
         when :SQL_CHAR
           dbi_type = DBI::Type::Varchar
+        when :SQL_BOOLEAN
+          dbi_type = DBI::Type::Boolean
+        when :SQL_NULL
+          dbi_type = DBI::Type::Null
         else
           raise "unknown type #{type} for column #{i}"
         end

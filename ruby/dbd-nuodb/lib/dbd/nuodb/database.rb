@@ -86,6 +86,8 @@ module DBI::DBD::NuoDB
           dbi_type = DBI::Type::Timestamp
         when 10
           dbi_type = DBI::Type::Timestamp
+        when 11
+          dbi_type = DBI::Type::Timestamp
         when 15
           dbi_type = DBI::Type::Timestamp
         when 22
