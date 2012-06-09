@@ -48,7 +48,7 @@ end
 
 puts "Create user records..."
 
-@u = User.create do |u|
+u = User.create do |u|
   u.first_name = "Fred"
   u.last_name = "Flintstone"
   u.email = "fredf@example.com"
@@ -56,15 +56,15 @@ puts "Create user records..."
   u.admin = true
 end
 
-@u.create_addr do |a|
+u.create_addr do |a|
   a.street = "301 Cobblestone Way"
   a.city = "Bedrock"
   a.zip = "00001"
 end
 
-puts "Created #{@u}"
+puts "Created #{u}"
 
-@u = User.create do |u|
+u = User.create do |u|
   u.first_name = "Barney"
   u.last_name = "Rubble"
   u.email = "barney@example.com"
@@ -72,13 +72,13 @@ puts "Created #{@u}"
   u.admin = false
 end
 
-@u.create_addr do |a|
+u.create_addr do |a|
   a.street = "303 Cobblestone Way"
   a.city = "Bedrock"
   a.zip = "00001"
 end
 
-puts "Created #{@u}"
+puts "Created #{u}"
 
 puts "Print user records..."
 
