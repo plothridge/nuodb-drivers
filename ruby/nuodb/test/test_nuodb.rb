@@ -94,6 +94,7 @@ create table test_nuodb (
   d double,
   s string,
   b boolean,
+  x integer generated always,
   primary key (i))
 EOS
 
@@ -101,13 +102,14 @@ EOS
     assert_not_nil stmt
 
     result = stmt.executeQuery "select * from test_nuodb"
-    assert_equal (-1), stmt.getUpdateCount
+    assert_equal(-1, stmt.getUpdateCount)
+    assert_nil stmt.getGeneratedKeys
     assert_not_nil result
     assert_equal false, result.next
 
     meta = result.getMetaData
     assert_not_nil meta
-    assert_equal 4, meta.getColumnCount
+    assert_equal 5, meta.getColumnCount
 
     assert_equal "I", meta.getColumnName(1)
     assert_equal :SQL_INTEGER, meta.getType(1)
@@ -121,14 +123,24 @@ EOS
     assert_equal "B", meta.getColumnName(4)
     assert_equal :SQL_BOOLEAN, meta.getType(4)
 
+    assert_equal "X", meta.getColumnName(5)
+    assert_equal :SQL_INTEGER, meta.getType(5)
+
     stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
     assert_equal 1, stmt.getUpdateCount
+    k = stmt.getGeneratedKeys
+    assert_not_nil k
+    assert_equal true, k.next
+    assert k.getInteger(1) > 0
+    assert_equal false, k.next
 
     stmt.execute "update test_nuodb set s='update' where i=999"
-    assert_equal (-1), stmt.getUpdateCount
+    assert_equal(-1, stmt.getUpdateCount)
+    assert_nil stmt.getGeneratedKeys
 
     stmt.execute "update test_nuodb set s='update' where i=10"
     assert_equal 1, stmt.getUpdateCount
+    assert_nil stmt.getGeneratedKeys
 
     r = stmt.executeQuery "select * from test_nuodb"
     assert_not_nil r
@@ -163,11 +175,11 @@ EOS
     query = con.createPreparedStatement "select * from test_nuodb where i=?"
     assert_not_nil query
 
-    assert_equal (-1), query.getUpdateCount
+    assert_equal(-1, query.getUpdateCount)
 
     query.setInteger 1, 10
     r = query.executeQuery
-    assert_equal (-1), query.getUpdateCount
+    assert_equal(-1, query.getUpdateCount)
     assert_not_nil r
     assert_equal true, r.next
     assert_equal 10, r.getInteger(1)
@@ -196,7 +208,7 @@ EOS
 
     update.setInteger 2, 999
     update.execute
-    assert_equal (-1), update.getUpdateCount
+    assert_equal(-1, update.getUpdateCount)
 
     update.setInteger 2, 10
     update.execute
