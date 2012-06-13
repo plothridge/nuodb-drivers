@@ -166,19 +166,34 @@ create table test_nuodb (
   d double,
   s string,
   b boolean,
+  x integer generated always,
   primary key (i))
 EOS
 
-    stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
+    insert = con.createPreparedStatement "insert into test_nuodb(i,d,s,b) values(?,?,?,?)"
+
+    insert.setInteger 1, 10
+    insert.setDouble 2, 1.1
+    insert.setString 3, 'one'
+    insert.setBoolean 4, true
+    insert.execute
+    k = insert.getGeneratedKeys
+    assert_not_nil k
+    assert k.next
+    assert k.getInteger(1) > 0
+    assert !k.next
+
+    #stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
     stmt.execute "insert into test_nuodb(i,d,s,b) values(20,2.2,'two',false)"
 
     query = con.createPreparedStatement "select * from test_nuodb where i=?"
     assert_not_nil query
-
+    assert_nil query.getGeneratedKeys
     assert_equal(-1, query.getUpdateCount)
 
     query.setInteger 1, 10
     r = query.executeQuery
+    assert_nil query.getGeneratedKeys
     assert_equal(-1, query.getUpdateCount)
     assert_not_nil r
     assert_equal true, r.next
@@ -192,6 +207,7 @@ EOS
 
     query.setInteger 1, 20
     r = query.executeQuery
+    assert_nil query.getGeneratedKeys
     assert_not_nil r
     assert_equal true, r.next
     assert_equal 20, r.getInteger(1)
