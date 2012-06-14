@@ -104,16 +104,16 @@ try {
   $db = open_db();
   $stmt = $db->query($sql);
   $result = $stmt->fetch(PDO::FETCH_NUM);
-  if ($result[0] != "37") {
+  if ($result[1] != "37") {
      print("FAILED: select test6\n");
   }
-  if ($result[1] != "PATRICE BERGERON") {
+  if ($result[2] != "PATRICE BERGERON") {
      print("FAILED: select test6\n");
   }
-  if ($result[2] != "Forward") {
+  if ($result[3] != "Forward") {
      print("FAILED: select test6\n");
   }
-  if ($result[3] != "Bruins") {
+  if ($result[4] != "Bruins") {
      print("FAILED: select test6\n");
   }
   $stmt = NULL;
@@ -129,16 +129,16 @@ try {
   $db = open_db();
   $stmt = $db->query($sql);
   $result = $stmt->fetch(PDO::FETCH_BOTH);
-  if ($result[0] != "37") {
+  if ($result[1] != "37") {
      print("FAILED: select test7\n");
   }
-  if ($result[1] != "PATRICE BERGERON") {
+  if ($result[2] != "PATRICE BERGERON") {
      print("FAILED: select test7\n");
   }
-  if ($result[2] != "Forward") {
+  if ($result[3] != "Forward") {
      print("FAILED: select test7\n");
   }
-  if ($result[3] != "Bruins") {
+  if ($result[4] != "Bruins") {
      print("FAILED: select test7\n");
   }
   if ($result["NUMBER"] != "37") {
@@ -248,5 +248,5 @@ try {
 $db = NULL;  
 
 
-echo "done\n";
+echo "\ndone\n";
 ?>
