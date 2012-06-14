@@ -3,7 +3,7 @@
 $db = NULL;  
 
 function open_db() {
-  $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "cloud", "user") or die;
+  $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "dba", "goalie") or die;
   return $db;
 }
 
