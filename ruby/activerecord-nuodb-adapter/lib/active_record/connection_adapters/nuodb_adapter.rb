@@ -31,7 +31,7 @@ require 'arel/visitors/nuodb'
 require 'active_record'
 require 'active_record/base'
 require 'active_record/connection_adapters/abstract_adapter'
-require 'active_record/connection_adapters/nuodb/statements'
+require 'active_record/connection_adapters/nuodb/database_statements'
 require 'active_record/connection_adapters/nuodb/version'
 
 module ActiveRecord
@@ -149,7 +149,7 @@ module ActiveRecord
     
     class NuoDBAdapter < AbstractAdapter
 
-      include Nuodb::Statements
+      include Nuodb::DatabaseStatements
       
       def initialize(connection, logger, pool, config)
         super(connection, logger, pool)
@@ -300,8 +300,7 @@ module ActiveRecord
           :ss_timestamp => { :name => 'timestamp' }
         }
       end
-        
-      
+
     end #class NuoDBAdapter < AbstractAdapter
     
   end #module ConnectionAdapters
