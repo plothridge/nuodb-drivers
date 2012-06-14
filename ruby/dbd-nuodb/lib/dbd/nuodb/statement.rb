@@ -30,8 +30,9 @@ module DBI::DBD::NuoDB
 
   class Statement < DBI::BaseStatement
 
-    def initialize(stmt)
+    def initialize(stmt, sql)
       @stmt = stmt
+      @sql = sql
     end
 
     #
@@ -47,8 +48,12 @@ module DBI::DBD::NuoDB
         @stmt.setInteger param, value
       when Float
         @stmt.setDouble param, value
+      when TrueClass
+        @stmt.setBoolean param, true
+      when FalseClass
+        @stmt.setBoolean param, false
       else
-        raise "don't know how to bind_param #{value.class}"
+        raise "don't know how to bind #{value.class} to parameter #{param}"
       end
     end
 
@@ -59,17 +64,18 @@ module DBI::DBD::NuoDB
       # TODO this is inefficient, but I want to avoid poking at the statement text
       begin
         @result = @stmt.executeQuery
+        @has_result = true
         @column_info = self.column_info
       rescue RuntimeError
         @stmt.execute
+        @generated_keys = self.class.build_row @stmt.getGeneratedKeys
         @result = nil
+        @has_result = false
         @column_info = nil
       end
-      
       @result
     end
 
-    #
     def finish
       @result = nil;
       @stmt = nil;
@@ -79,36 +85,7 @@ module DBI::DBD::NuoDB
     # Fetch the next row in the result set. DBD Required.
     #
     def fetch
-    #  return [] if @result.nil?
-      if @result.next
-        meta = @result.getMetaData
-        count = meta.getColumnCount
-        retval = []
-        for i in 1..count
-          type = meta.getType i
-          case type
-          when :SQL_INTEGER
-            retval << @result.getInteger(i)
-          when :SQL_DOUBLE
-            retval << @result.getDouble(i)
-          when :SQL_STRING
-            retval << @result.getString(i)
-          when :SQL_DATE
-            retval << @result.getDate(i)
-          when :SQL_TIME
-            retval << @result.getTime(i)
-          when :SQL_TIMESTAMP
-            retval << @result.getTimestamp(i)
-          when :SQL_CHAR
-            retval << @result.getChar(i)
-          else
-            raise "unknown type #{type} for column #{i}"
-          end
-        end
-        retval
-      else
-        return nil
-      end
+      @has_result ? self.class.build_row(@result) : nil
     end
 
     #
@@ -160,18 +137,51 @@ module DBI::DBD::NuoDB
       retval
     end
 
-    #
-    # Optional
-    #
+    def generated_keys
+      @generated_keys
+    end
+
     def fetch_scroll(direction, offset)
       raise NotImplementedError
     end
 
-    #
-    # Optional
-    #
     def []=(attr, value)
       raise NotImplementedError
+    end
+
+    private
+
+    def self.build_row(result_set)
+      return nil if result_set.nil?
+      if result_set.next
+        meta = result_set.getMetaData
+        count = meta.getColumnCount
+        retval = []
+        for i in 1..count
+          type = meta.getType(i)
+          case type
+          when :SQL_INTEGER
+            retval << result_set.getInteger(i)
+          when :SQL_DOUBLE
+            retval << result_set.getDouble(i)
+          when :SQL_STRING
+            retval << result_set.getString(i)
+          when :SQL_DATE
+            retval << result_set.getDate(i)
+          when :SQL_TIME
+            retval << result_set.getTime(i)
+          when :SQL_TIMESTAMP
+            retval << result_set.getTimestamp(i)
+          when :SQL_CHAR
+            retval << result_set.getChar(i)
+          else
+            raise "unknown type #{type} for column #{i}"
+          end
+        end
+        retval
+      else
+        return nil
+      end
     end
 
   end

@@ -108,7 +108,7 @@ module DBI::DBD::NuoDB
 
     def prepare(sql)
       stmt = @conn.createPreparedStatement sql
-      return Statement.new stmt
+      return Statement.new stmt, sql
     end
 
     def commit
@@ -117,11 +117,6 @@ module DBI::DBD::NuoDB
 
     def rollback
       @conn.rollback
-    end
-
-    def do(statement, *bindvars)
-      stmt = @conn.createPreparedStatement statement
-      stmt.execute
     end
 
     #

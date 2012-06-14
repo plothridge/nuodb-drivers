@@ -39,8 +39,8 @@ class TC_Nuodb < Test::Unit::TestCase
     password = ENV['NUODB_PASSWORD'] || 'user'
     @dbh = DBI.connect("DBI:NuoDB:#{schema}:#{hostname}", username, password)
 
-    @dbh.do("DROP TABLE IF EXISTS EMPLOYEE")
-    @dbh.do("CREATE TABLE EMPLOYEE (
+    @dbh.execute("DROP TABLE IF EXISTS EMPLOYEE")
+    @dbh.execute("CREATE TABLE EMPLOYEE (
                FIRST_NAME CHAR(20) NOT NULL,
                LAST_NAME CHAR(20),
 	       HIRE DATE,
@@ -64,7 +64,7 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_insert()
 
-    @dbh.do( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, HIRE, INTERVIEW, START, AGE, SEX, INCOME)
+    @dbh.execute( "INSERT INTO EMPLOYEE(FIRST_NAME, LAST_NAME, HIRE, INTERVIEW, START, AGE, SEX, INCOME)
           VALUES ('Mac', 'Mohan', '6/1/2012', '10:30:00', '6/6/2012 09:30:00', 20, 'M', 2000)" )
 
     row = @dbh.select_one("SELECT * FROM EMPLOYEE")
@@ -184,6 +184,20 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_ping()
     assert_equal true, @dbh.ping
+  end
+
+  def test_generated_keys()
+    @dbh.execute("DROP TABLE IF EXISTS GENKEYS")
+    @dbh.execute("CREATE TABLE GENKEYS (
+               A INTEGER,
+               B INTEGER GENERATED ALWAYS,
+               C INTEGER GENERATED ALWAYS)" );
+
+    stmt = @dbh.execute('INSERT INTO GENKEYS (A) VALUES (?)', 11)
+    keys = stmt.handle.generated_keys
+    assert_not_nil keys
+    assert_equal 1, keys.length
+    assert keys[0] > 0
   end
 
 end
