@@ -106,7 +106,12 @@ void PdoNuoDbHandle::setOptions(SqlOptionArray * options)
 NuoDB::Connection * PdoNuoDbHandle::createConnection()
 {
     closeConnection();
-    _con = NuoDB::Connection::create();
+    _con = NuoDB::Connection::create((const char *)_opts->array[0].extra,
+                                     (const char *)_opts->array[1].extra,
+                                     (const char *)_opts->array[2].extra,
+                                     1,
+                                     (const char *)_opts->array[3].option,
+                                     (const char *)_opts->array[3].extra);
     //TODO add properties
     return _con;
 }
@@ -188,8 +193,19 @@ NuoDB::PreparedStatement * PdoNuoDbStatement::createStatement(char const * sql)
     {
         return NULL;
     }
+    try {
     _stmt = _con->prepareStatement(sql);
     _rs = NULL;
+    } catch (NuoDB::SQLException & e) {
+        int code = e.getSqlcode();
+        const char *text = e.getText();
+        zend_throw_exception_ex(php_pdo_get_exception(), code TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
+                                "HY000", code, text);
+    } catch (...) {
+        zend_throw_exception_ex(php_pdo_get_exception(), 0 TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
+                                "HY000", 0, "Unknown problem");
+    }
+
     return _stmt;
 }
 
