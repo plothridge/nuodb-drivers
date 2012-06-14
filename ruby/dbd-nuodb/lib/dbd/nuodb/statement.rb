@@ -30,8 +30,9 @@ module DBI::DBD::NuoDB
 
   class Statement < DBI::BaseStatement
 
-    def initialize(stmt)
+    def initialize(stmt, sql)
       @stmt = stmt
+      @sql = sql
     end
 
     #
@@ -47,8 +48,12 @@ module DBI::DBD::NuoDB
         @stmt.setInteger param, value
       when Float
         @stmt.setDouble param, value
+      when TrueClass
+        @stmt.setBoolean param, true
+      when FalseClass
+        @stmt.setBoolean param, false
       else
-        raise "don't know how to bind_param #{value.class}"
+        raise "don't know how to bind #{value.class} to parameter #{param}"
       end
     end
 
@@ -59,19 +64,18 @@ module DBI::DBD::NuoDB
       # TODO this is inefficient, but I want to avoid poking at the statement text
       begin
         @result = @stmt.executeQuery
-	@column_info = self.column_info
+        @has_result = true
+        @column_info = self.column_info
       rescue RuntimeError
         @stmt.execute
+        @generated_keys = self.class.build_row @stmt.getGeneratedKeys
         @result = nil
+        @has_result = false
         @column_info = nil
       end
-      
       @result
     end
 
-    #
-    # Close the statement and any result cursors. DBD Required.
-    #
     def finish
       @result = nil;
       @stmt = nil;
@@ -81,39 +85,15 @@ module DBI::DBD::NuoDB
     # Fetch the next row in the result set. DBD Required.
     #
     def fetch
-      if @result.next
-        meta = @result.getMetaData
-        count = meta.getColumnCount
-        retval = []
-        for i in 1..count
-          type = meta.getType i
-          case type
-          when :SQL_INTEGER
-            retval << @result.getInteger(i)
-          when :SQL_DOUBLE
-            retval << @result.getDouble(i)
-          when :SQL_STRING
-            retval << @result.getString(i)
-          when :SQL_DATE
-            retval << @result.getDate(i)
-          when :SQL_CHAR
-            retval << @result.getChar(i)
-          else
-            raise "unknown type #{type} for column #{i}"
-          end
-        end
-        retval
-      else
-        return nil
-      end
+      @has_result ? self.class.build_row(@result) : nil
     end
 
     #
     # Provides result-set column information as an array of hashes. DBD Required.
     #
     def column_info
-      retval = []
       return [] if @result.nil?
+      retval = []
       meta = @result.getMetaData
       count = meta.getColumnCount
       for i in 1..count
@@ -127,40 +107,81 @@ module DBI::DBD::NuoDB
           dbi_type = DBI::Type::Varchar
         when :SQL_DATE
           dbi_type = DBI::Type::Timestamp
+        when :SQL_TIME
+          dbi_type = DBI::Type::Timestamp
+        when :SQL_TIMESTAMP
+          dbi_type = DBI::Type::Timestamp
         when :SQL_CHAR
           dbi_type = DBI::Type::Varchar
+        when :SQL_BOOLEAN
+          dbi_type = DBI::Type::Boolean
+        when :SQL_NULL
+          dbi_type = DBI::Type::Null
         else
           raise "unknown type #{type} for column #{i}"
         end
                      
         retval << {
-          'name'     => meta.getColumnName(i),
+          'name' => meta.getColumnName(i),
           'sql_type' => type,
-          'dbi_type' => dbi_type
-          # TODO 'type_name' => '???',
-          # TODO 'precision' => '???',
-          # TODO 'scale'     => '???',
-          # TODO 'nullable'  => '???',
-          # TODO 'indexed'   => '???',
-          # TODO 'primary'   => '???',
-          # TODO 'unique'    => '???'
+          'dbi_type' => dbi_type,
+          'type_name' => meta.getColumnTypeName(i),
+          'precision' => meta.getPrecision(i),
+          'scale'     => meta.getScale(i),
+          'nullable'  => meta.isNullable(i)
+          #'indexed'   => meta.isIndexed(i),
+          #'primary'   => meta.isPrimary(i),
+          #'unique'    => meta.isUnique(i)
         }
       end
       retval
     end
 
-    #
-    # Optional
-    #
+    def generated_keys
+      @generated_keys
+    end
+
     def fetch_scroll(direction, offset)
       raise NotImplementedError
     end
 
-    #
-    # Optional
-    #
     def []=(attr, value)
       raise NotImplementedError
+    end
+
+    private
+
+    def self.build_row(result_set)
+      return nil if result_set.nil?
+      if result_set.next
+        meta = result_set.getMetaData
+        count = meta.getColumnCount
+        retval = []
+        for i in 1..count
+          type = meta.getType(i)
+          case type
+          when :SQL_INTEGER
+            retval << result_set.getInteger(i)
+          when :SQL_DOUBLE
+            retval << result_set.getDouble(i)
+          when :SQL_STRING
+            retval << result_set.getString(i)
+          when :SQL_DATE
+            retval << result_set.getDate(i)
+          when :SQL_TIME
+            retval << result_set.getTime(i)
+          when :SQL_TIMESTAMP
+            retval << result_set.getTimestamp(i)
+          when :SQL_CHAR
+            retval << result_set.getChar(i)
+          else
+            raise "unknown type #{type} for column #{i}"
+          end
+        end
+        retval
+      else
+        return nil
+      end
     end
 
   end

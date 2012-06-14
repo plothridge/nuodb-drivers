@@ -29,7 +29,7 @@
 module ActiveRecord
   module ConnectionAdapters
     module Nuodb
-      module Statements
+      module DatabaseStatements
 
         def execute(sql, name = nil)
           do_execute sql, name
@@ -39,6 +39,41 @@ module ActiveRecord
           log(sql, name) do
             @connection.execute(sql)
           end
+        end
+
+        def exec_query(sql, name = 'SQL', binds = [])
+
+          # Convert the binds into a simple array of values
+          cbinds = binds.map { |c|
+            c[1]
+          }
+
+          # execute the query
+          result = @connection.execute(sql, *cbinds)
+
+          # build the result object
+          obj = ActiveRecord::Result.new(result.column_names, result.to_a)
+          def obj.generated_key=(generated_key)
+            @generated_key = generated_key
+          end
+          def obj.generated_key
+            @generated_key
+          end
+          obj.generated_key = result.handle.generated_keys[0]
+
+          obj
+
+        end
+
+        def last_inserted_id(result)
+          result.generated_key
+        end
+
+        protected
+
+        def select(sql, name = nil, binds = [])
+          puts "select(#{sql}, ...)"
+          exec_query(sql, name, binds).to_a
         end
 
       end

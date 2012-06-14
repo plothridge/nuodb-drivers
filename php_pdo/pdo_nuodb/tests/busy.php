@@ -2,7 +2,7 @@
 $fanCount++;
 for ($i=0; $i<1000; $i++) {
 try {  
-  $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "cloud", "user") or die;
+  $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "dba", "goalie") or die;
   $sql = "select * from hockey";
   foreach ($db->query($sql) as $row) {
      if ($row['POSITION'] == 'Fan')

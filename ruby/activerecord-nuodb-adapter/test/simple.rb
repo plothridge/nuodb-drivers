@@ -88,6 +88,9 @@ class NuoSimpleTest < Test::Unit::TestCase
       u.admin = true
     end
 
+    assert_not_nil u
+    assert_not_nil u.id
+
     fred_id = u.id
 
     u.create_addr do |a|
