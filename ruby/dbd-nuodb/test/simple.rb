@@ -75,7 +75,7 @@ class TC_Nuodb < Test::Unit::TestCase
     assert_equal 'Mohan', row[1]
     assert_equal '6/1/2012', row[2].strftime("%-m/%-d/%Y")
     assert_equal '10:30:00', row[3].strftime("%H:%M:%S")
-    assert_equal '6/1/2012', row[4].strftime("%-m/%-d/%Y")
+    assert_equal '6/6/2012', row[4].strftime("%-m/%-d/%Y")
     assert_equal 20, row[5]
     assert_equal 'M', row[6]
     assert_equal 2000.0, row[7]
@@ -105,14 +105,14 @@ class TC_Nuodb < Test::Unit::TestCase
     result = sth.fetch
     # I'm sure there is some cool Ruby syntax for this but don't know it
     
-    assert_equal result[0], 'Fred'
-    assert_equal result[1], 'Flintstone'
-    assert_equal result[2].strftime("%-m/%-d/%Y"), '6/1/2012'
-    assert_equal result[3].strftime("%H:%M:%S"), '10:00:00'
-    assert_equal result[4].strftime("%-m/%-d/%Y %H:%M:%S"), '6/7/2012 10:00:00'
-    assert_equal result[5], 43
-    assert_equal result[6], 'M'
-    assert_equal result[7], 2300.0
+    assert_equal 'Fred', result[0]
+    assert_equal 'Flintstone', result[1]
+    assert_equal '6/1/2012', result[2].strftime("%-m/%-d/%Y")
+    assert_equal '10:00:00', result[3].strftime("%H:%M:%S")
+    assert_equal '6/7/2012', result[4].strftime("%-m/%-d/%Y")
+    assert_equal 43, result[5]
+    assert_equal 'M', result[6]
+    assert_equal 2300.00, result[7]
 
     # ensure no more records
     assert_nil sth.fetch

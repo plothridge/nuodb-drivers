@@ -5,14 +5,14 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of NuoDB, Inc. nor the names of its contributors may
- *       be used to endorse or promote products derived from this software
- *       without specific prior written permission.
+ *	   * Redistributions of source code must retain the above copyright
+ *		 notice, this list of conditions and the following disclaimer.
+ *	   * Redistributions in binary form must reproduce the above copyright
+ *		 notice, this list of conditions and the following disclaimer in the
+ *		 documentation and/or other materials provided with the distribution.
+ *	   * Neither the name of NuoDB, Inc. nor the names of its contributors may
+ *		 be used to endorse or promote products derived from this software
+ *		 without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -40,51 +40,51 @@
 //------------------------------------------------------------------------------
 // class building macros
 
-#define WRAPPER_COMMON(WT, RT)						\
-  private:								\
-  static VALUE type;							\
-  RT* ptr;								\
-public:									\
- WT(RT* arg) : ptr(arg) {}						\
- static VALUE getRubyType() { return type; }				\
- static void release(WT* self)						\
- {									\
-   /*delete self->ptr;*/						\
-   delete self;								\
- }									\
- static RT* asPtr(VALUE value)						\
- {									\
-   Check_Type(value, T_DATA);						\
-   return ((WT*) DATA_PTR(value))->ptr;					\
- }									\
- static VALUE wrap(RT* value)						\
- {									\
-   if (value == NULL) return Qnil;					\
-   WT* w = new WT(value);						\
-   VALUE obj = Data_Wrap_Struct(WT::getRubyType(), 0, WT::release, w);	\
-   rb_obj_call_init(obj, 0, 0);						\
-   return obj;								\
- }
+#define WRAPPER_COMMON(WT, RT)											\
+	private:															\
+	static VALUE type;													\
+	RT* ptr;															\
+public:																	\
+WT(RT* arg) : ptr(arg) {}												\
+static VALUE getRubyType() { return type; }								\
+static void release(WT* self)											\
+{																		\
+	/*delete self->ptr;*/												\
+	delete self;														\
+}																		\
+static RT* asPtr(VALUE value)											\
+{																		\
+	Check_Type(value, T_DATA);											\
+	return ((WT*) DATA_PTR(value))->ptr;								\
+}																		\
+static VALUE wrap(RT* value)											\
+{																		\
+	if (value == NULL) return Qnil;										\
+	WT* w = new WT(value);												\
+	VALUE obj = Data_Wrap_Struct(WT::getRubyType(), 0, WT::release, w);	\
+	rb_obj_call_init(obj, 0, 0);										\
+	return obj;															\
+}
 
-#define WRAPPER_DEFINITION(WT)                  \
-    VALUE WT::type = 0;
+#define WRAPPER_DEFINITION(WT)					\
+	VALUE WT::type = 0;
 
 #define AS_QBOOL(value) ((value) ? Qtrue : Qfalse)
 
 //------------------------------------------------------------------------------
 // utility function macros
 
-#define SYMBOL_OF(value)                        \
-    ID2SYM(rb_intern(#value))
+#define SYMBOL_OF(value)						\
+	ID2SYM(rb_intern(#value))
 
-#define INIT_TYPE(name)                                     \
-    type = rb_define_class_under(module, name, rb_cObject)
+#define INIT_TYPE(name)										\
+	type = rb_define_class_under(module, name, rb_cObject)
 
-#define DEFINE_SINGLE(func, count)                                      \
-    rb_define_singleton_method(type, #func, RUBY_METHOD_FUNC(func), count)
+#define DEFINE_SINGLE(func, count)										\
+	rb_define_singleton_method(type, #func, RUBY_METHOD_FUNC(func), count)
 
-#define DEFINE_METHOD(func, count)                                  \
-    rb_define_method(type, #func, RUBY_METHOD_FUNC(func), count)
+#define DEFINE_METHOD(func, count)									\
+	rb_define_method(type, #func, RUBY_METHOD_FUNC(func), count)
 
 #include "Connection.h"
 #include "BigDecimal.h"
@@ -113,11 +113,11 @@ using namespace NuoDB;
 
 class SqlDatabaseMetaData
 {
-    WRAPPER_COMMON(SqlDatabaseMetaData, DatabaseMetaData)
+	WRAPPER_COMMON(SqlDatabaseMetaData, DatabaseMetaData)
 
-    static void init(VALUE module);
-    static VALUE getDatabaseVersion(VALUE self);
-    static VALUE getIndexInfo(VALUE self, VALUE schemaValue, VALUE tableValue, VALUE uniqueValue, VALUE approxValue);
+	static void init(VALUE module);
+	static VALUE getDatabaseVersion(VALUE self);
+	static VALUE getIndexInfo(VALUE self, VALUE schemaValue, VALUE tableValue, VALUE uniqueValue, VALUE approxValue);
 	static VALUE getColumns(VALUE self, VALUE schemaValue, VALUE tablePattern);
 	static VALUE getTables(VALUE self, VALUE schemaValue, VALUE table);
 };
@@ -128,16 +128,16 @@ WRAPPER_DEFINITION(SqlDatabaseMetaData);
 
 class SqlResultSetMetaData
 {
-    WRAPPER_COMMON(SqlResultSetMetaData, ResultSetMetaData);
+	WRAPPER_COMMON(SqlResultSetMetaData, ResultSetMetaData);
 
-    static void init(VALUE module);
+	static void init(VALUE module);
 	static VALUE getColumnCount(VALUE self);
-    static VALUE getColumnName(VALUE self, VALUE columnValue);
-    static VALUE getScale(VALUE self, VALUE columnValue);
+	static VALUE getColumnName(VALUE self, VALUE columnValue);
+	static VALUE getScale(VALUE self, VALUE columnValue);
 	static VALUE getPrecision(VALUE self, VALUE columnValue);
 	static VALUE isNullable(VALUE self, VALUE columnValue);
-    static VALUE getColumnTypeName(VALUE self, VALUE columnValue);
-    static VALUE getType(VALUE self, VALUE columnValue);
+	static VALUE getColumnTypeName(VALUE self, VALUE columnValue);
+	static VALUE getType(VALUE self, VALUE columnValue);
 };
 
 WRAPPER_DEFINITION(SqlResultSetMetaData);
@@ -169,14 +169,14 @@ WRAPPER_DEFINITION(SqlResultSet)
 
 class SqlStatement
 {
-    WRAPPER_COMMON(SqlStatement, Statement);
+	WRAPPER_COMMON(SqlStatement, Statement);
 
-    static void init(VALUE module);
-    static VALUE execute(VALUE self, VALUE sqlValue);
-    static VALUE executeQuery(VALUE self, VALUE sqlValue);
-    static VALUE executeUpdate(VALUE self, VALUE sqlValue);
-    static VALUE getUpdateCount(VALUE self);
-    static VALUE getGeneratedKeys(VALUE self);
+	static void init(VALUE module);
+	static VALUE execute(VALUE self, VALUE sqlValue);
+	static VALUE executeQuery(VALUE self, VALUE sqlValue);
+	static VALUE executeUpdate(VALUE self, VALUE sqlValue);
+	static VALUE getUpdateCount(VALUE self);
+	static VALUE getGeneratedKeys(VALUE self);
 };
 
 WRAPPER_DEFINITION(SqlStatement);
@@ -185,18 +185,18 @@ WRAPPER_DEFINITION(SqlStatement);
 
 class SqlPreparedStatement
 {
-    WRAPPER_COMMON(SqlPreparedStatement, PreparedStatement);
+	WRAPPER_COMMON(SqlPreparedStatement, PreparedStatement);
 
-    static void init(VALUE module);
-    static VALUE setBoolean(VALUE self, VALUE indexValue, VALUE valueValue);
-    static VALUE setInteger(VALUE self, VALUE indexValue, VALUE valueValue);
-    static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue);
-    static VALUE setString(VALUE self, VALUE indexValue, VALUE valueValue);
-    static VALUE execute(VALUE self);
-    static VALUE executeQuery(VALUE self);
-    static VALUE executeUpdate(VALUE self);
-    static VALUE getUpdateCount(VALUE self);
-    static VALUE getGeneratedKeys(VALUE self);
+	static void init(VALUE module);
+	static VALUE setBoolean(VALUE self, VALUE indexValue, VALUE valueValue);
+	static VALUE setInteger(VALUE self, VALUE indexValue, VALUE valueValue);
+	static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue);
+	static VALUE setString(VALUE self, VALUE indexValue, VALUE valueValue);
+	static VALUE execute(VALUE self);
+	static VALUE executeQuery(VALUE self);
+	static VALUE executeUpdate(VALUE self);
+	static VALUE getUpdateCount(VALUE self);
+	static VALUE getGeneratedKeys(VALUE self);
 };
 
 WRAPPER_DEFINITION(SqlPreparedStatement);
@@ -205,17 +205,17 @@ WRAPPER_DEFINITION(SqlPreparedStatement);
 
 class SqlConnection
 {
-    WRAPPER_COMMON(SqlConnection, Connection);
+	WRAPPER_COMMON(SqlConnection, Connection);
 
-    static void init(VALUE module);
-    static VALUE ping(VALUE self);
-    static VALUE createStatement(VALUE self);
-    static VALUE createPreparedStatement(VALUE self, VALUE sqlValue);
-    static VALUE setAutoCommit(VALUE self, VALUE autoCommitValue);
-    static VALUE hasAutoCommit(VALUE self);
-    static VALUE commit(VALUE self);
-    static VALUE rollback(VALUE self);
-    static VALUE getMetaData(VALUE self);
+	static void init(VALUE module);
+	static VALUE ping(VALUE self);
+	static VALUE createStatement(VALUE self);
+	static VALUE createPreparedStatement(VALUE self, VALUE sqlValue);
+	static VALUE setAutoCommit(VALUE self, VALUE autoCommitValue);
+	static VALUE hasAutoCommit(VALUE self);
+	static VALUE commit(VALUE self);
+	static VALUE rollback(VALUE self);
+	static VALUE getMetaData(VALUE self);
 	static VALUE getSchema(VALUE self);
 	static VALUE createSqlConnection(VALUE self,
 									 VALUE databaseValue, 
@@ -335,13 +335,13 @@ VALUE SqlResultSet::getMetaData(VALUE self)
 
 VALUE SqlResultSet::getBoolean(VALUE self, VALUE columnValue)
 {
-  int column = NUM2UINT(columnValue);
-  try {
-    bool value = asPtr(self)->getBoolean(column);
-    return AS_QBOOL(value);
-  } catch (SQLException & e) {
-    rb_raise(rb_eRuntimeError, "getBoolean(%d) failed: %s", column, e.getText());
-  }
+	int column = NUM2UINT(columnValue);
+	try {
+	bool value = asPtr(self)->getBoolean(column);
+	return AS_QBOOL(value);
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getBoolean(%d) failed: %s", column, e.getText());
+	}
 }
 
 VALUE SqlResultSet::getInteger(VALUE self, VALUE columnValue)
@@ -381,26 +381,14 @@ VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
 	int column = NUM2UINT(columnValue);
 	try 
 		{
-		Date* date = asPtr(self)->getDate(column);
-		//return  ULL2NUM(date->getMilliseconds());
-		//return  ULL2NUM(date->getSeconds());
-		// Convert seconds or milliseconds into datetime string for Ruby DateTime object
-		// Would rather not do this but is seems DateTime only takes and parses a string
-		// Please NOTE that something is not correct here.  SqlTimestamp take millis
-		// SqlTimestamp(int64_t millis);
-		// However, it works correctly when I give it seconds so either getSeconds is returning millis
-		// or SqlTimestamp wants seconds.  Either way it is a bug and will file a JIRA to track.
-		//SqlTimestamp timestamp(date->getSeconds());
+		return rb_str_new2(asPtr(self)->getString(column));
+		//Date* date = asPtr(self)->getDate(column);
+		//SqlDate timestamp(date->getMilliseconds());
 		//struct tm utc;	
-		//timestamp.getTimestamp(&utc);
+		//timestamp.getDate(&utc);
 		//char buffer[250];
 		//::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
-		SqlDate timestamp(date->getSeconds());
-		struct tm utc;	
-		timestamp.getDate(&utc);
-		char buffer[250];
-		::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
-		return rb_str_new2(buffer);
+		//return rb_str_new2(buffer);
 		} 
 	catch (SQLException & e) 
 		{
@@ -413,15 +401,17 @@ VALUE SqlResultSet::getTime(VALUE self, VALUE columnValue)
 	int column = NUM2UINT(columnValue);
 	try 
 		{
-		Time* time = asPtr(self)->getTime(column);
-		//SqlTime timestamp(time->getSeconds());
-		SqlTime timestamp(time->getMilliseconds());
-		struct tm utc;	
-		timestamp.getTime(&utc);
-		char buffer[250];
-		::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
-		printf("buffer %s\n", buffer);
-		return rb_str_new2(buffer);
+		return rb_str_new2(asPtr(self)->getString(column));
+		//Time* time = asPtr(self)->getTime(column);
+		//SqlTime timestamp(time->getMilliseconds());
+		//struct tm utc;	
+		//timestamp.getTime(&utc);
+		//char buffer[250];
+        //::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
+		// Workaround until we fix the Date/Time support
+		// Convert time to local time?
+		//snprintf(buffer, sizeof(buffer), "%u:%u:%u", utc.tm_hour, utc.tm_min, utc.tm_sec);
+		//return rb_str_new2(buffer);
 		} 
 	catch (SQLException & e) 
 		{
@@ -434,13 +424,14 @@ VALUE SqlResultSet::getTimestamp(VALUE self, VALUE columnValue)
 	int column = NUM2UINT(columnValue);
 	try 
 		{
-		Timestamp* ts = asPtr(self)->getTimestamp(column);
-		SqlTimestamp timestamp(ts->getSeconds());
-		struct tm utc;	
-		timestamp.getTimestamp(&utc);
-		char buffer[250];
-		::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
-		return rb_str_new2(buffer);
+		return rb_str_new2(asPtr(self)->getString(column));
+		//Timestamp* ts = asPtr(self)->getTimestamp(column);
+		//SqlTimestamp timestamp(ts->getMilliseconds());
+		//struct tm utc;	
+		//timestamp.getTimestamp(&utc);
+		//char buffer[250];
+		//::strftime(buffer,sizeof(buffer),"%Y%m%dT%I%M%S+0000",&utc);
+		//return rb_str_new2(buffer);
 		} 
 	catch (SQLException & e) 
 		{
@@ -660,20 +651,20 @@ VALUE SqlStatement::executeUpdate(VALUE self, VALUE sqlValue)
 
 VALUE SqlStatement::getUpdateCount(VALUE self)
 {
-  try {
-    return INT2NUM(asPtr(self)->getUpdateCount());
-  } catch (SQLException & e) {
-    rb_raise(rb_eRuntimeError, "getUpdateCount() failed: %s", e.getText());
-  }
+	try {
+	return INT2NUM(asPtr(self)->getUpdateCount());
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getUpdateCount() failed: %s", e.getText());
+	}
 }
 
 VALUE SqlStatement::getGeneratedKeys(VALUE self)
 {
-  try {
-    return SqlResultSet::wrap(asPtr(self)->getGeneratedKeys());
-  } catch (SQLException & e) {
-    rb_raise(rb_eRuntimeError, "getGeneratedKeys() failed: %s", e.getText());
-  }
+	try {
+	return SqlResultSet::wrap(asPtr(self)->getGeneratedKeys());
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getGeneratedKeys() failed: %s", e.getText());
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -694,15 +685,15 @@ void SqlPreparedStatement::init(VALUE module)
 
 VALUE SqlPreparedStatement::setBoolean(VALUE self, VALUE indexValue, VALUE valueValue)
 {
-  int32_t index = NUM2UINT(indexValue);
-  bool value = valueValue ? true : false;
-  try {
-      asPtr(self)->setInt(index, value);
-      return Qnil;
-  } catch (SQLException & e) {
-      rb_raise(rb_eRuntimeError, "setBoolean(%d, %s) failed: %s",
-	       index, (value ? "true" : "false"), e.getText());
-  }
+	int32_t index = NUM2UINT(indexValue);
+	bool value = valueValue ? true : false;
+	try {
+	asPtr(self)->setInt(index, value);
+	return Qnil;
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "setBoolean(%d, %s) failed: %s",
+			 index, (value ? "true" : "false"), e.getText());
+	}
 }
 
 VALUE SqlPreparedStatement::setInteger(VALUE self, VALUE indexValue, VALUE valueValue)
@@ -789,20 +780,20 @@ VALUE SqlPreparedStatement::executeUpdate(VALUE self)
 
 VALUE SqlPreparedStatement::getUpdateCount(VALUE self)
 {
-  try {
-    return INT2NUM(asPtr(self)->getUpdateCount());
-  } catch (SQLException & e) {
-    rb_raise(rb_eRuntimeError, "getUpdateCount() failed: %s", e.getText());
-  }
+	try {
+	return INT2NUM(asPtr(self)->getUpdateCount());
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getUpdateCount() failed: %s", e.getText());
+	}
 }
 
 VALUE SqlPreparedStatement::getGeneratedKeys(VALUE self)
 {
-  try {
-    return SqlResultSet::wrap(asPtr(self)->getGeneratedKeys());
-  } catch (SQLException & e) {
-    rb_raise(rb_eRuntimeError, "getGeneratedKeys() failed: %s", e.getText());
-  }
+	try {
+	return SqlResultSet::wrap(asPtr(self)->getGeneratedKeys());
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getGeneratedKeys() failed: %s", e.getText());
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -824,7 +815,7 @@ void SqlConnection::init(VALUE module)
 
 VALUE SqlConnection::getSchema(VALUE self)
 {
-    try 
+	try 
 		{
 		return rb_str_new2(asPtr(self)->getSchema());
 		} 
@@ -864,7 +855,7 @@ VALUE SqlConnection::createPreparedStatement(VALUE self, VALUE sqlValue)
 	const char* sql = StringValuePtr(sqlValue);
 	try 
 		{
-	        return SqlPreparedStatement::wrap( asPtr(self)->prepareStatement(sql, NuoDB::RETURN_GENERATED_KEYS));
+		return SqlPreparedStatement::wrap( asPtr(self)->prepareStatement(sql, NuoDB::RETURN_GENERATED_KEYS));
 		} 
 	catch (SQLException & e) 
 		{
@@ -929,7 +920,7 @@ VALUE SqlConnection::getMetaData(VALUE self)
 {
 	try 
 		{
-  return SqlDatabaseMetaData::wrap( asPtr(self)->getMetaData());
+		return SqlDatabaseMetaData::wrap( asPtr(self)->getMetaData());
 		} 
 	catch (SQLException & e) 
 		{
@@ -947,15 +938,15 @@ VALUE SqlConnection::createSqlConnection(VALUE self,
 	char const* schema = StringValuePtr(schemaValue);
 	char const* username = StringValuePtr(usernameValue);
 	char const* password = StringValuePtr(passwordValue);
-           
+		   
 	try 
 		{
 		return SqlConnection::wrap( getDatabaseConnection(database, 
-															username, 
-															password, 
-															1, 
-															"schema",
-															schema));
+														  username, 
+														  password, 
+														  1, 
+														  "schema",
+														  schema));
 		} 
 	catch (SQLException & e) 
 		{
@@ -973,13 +964,13 @@ VALUE SqlConnection::createSqlConnection(VALUE self,
 extern "C"
 void Init_nuodb(void)
 {
-    VALUE module = rb_define_module("Nuodb");
-    SqlConnection::init(module);
-    SqlDatabaseMetaData::init(module);
-    SqlStatement::init(module);
-    SqlPreparedStatement::init(module);
-    SqlResultSet::init(module);
-    SqlResultSetMetaData::init(module);
+	VALUE module = rb_define_module("Nuodb");
+	SqlConnection::init(module);
+	SqlDatabaseMetaData::init(module);
+	SqlStatement::init(module);
+	SqlPreparedStatement::init(module);
+	SqlResultSet::init(module);
+	SqlResultSetMetaData::init(module);
 }
 
 //------------------------------------------------------------------------------
