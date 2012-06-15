@@ -59,7 +59,10 @@ module ActiveRecord
           def obj.generated_key
             @generated_key
           end
-          obj.generated_key = result.handle.generated_keys[0]
+          keys = result.handle.generated_keys;
+          if keys
+            obj.generated_key = keys[0]
+          end
 
           obj
 
@@ -72,7 +75,6 @@ module ActiveRecord
         protected
 
         def select(sql, name = nil, binds = [])
-          puts "select(#{sql}, ...)"
           exec_query(sql, name, binds).to_a
         end
 
