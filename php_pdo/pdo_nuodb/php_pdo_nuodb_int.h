@@ -39,15 +39,17 @@
 #define PDO_NUODB_SQLTYPE_DATE      6
 #define PDO_NUODB_SQLTYPE_TIME      7
 #define PDO_NUODB_SQLTYPE_TIMESTAMP 8
+#define PDO_NUODB_SQLTYPE_ARRAY     9  // Not Yet Supported by this driver.
+
 
 typedef struct
 {
-    short type;  // datatype
+    short sqltype;  // datatype
     short scale; // scale factor
     short col_name_length; // length of column name
     char  col_name[32];
     short len; // length of data buffer
-    char * data; // address of data buffer
+    char *data; // address of data buffer
 } nuo_param; // XSQLVAR
 
 typedef struct

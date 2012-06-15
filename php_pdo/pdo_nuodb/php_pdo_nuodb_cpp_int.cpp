@@ -326,3 +326,24 @@ unsigned long PdoNuoDbStatement::getLong(size_t column)
     }
     return _rs->getLong(column+1);
 }
+
+size_t PdoNuoDbStatement::getNumberOfParameters()
+{
+    if (_stmt == NULL) {
+        return 0;
+    }
+    NuoDB::ParameterMetaData *pmd = _stmt->getParameterMetaData();
+    if (pmd == NULL) {
+        return 0;
+    }
+    return pmd->getParameterCount();
+}
+
+void PdoNuoDbStatement::setInteger(size_t index, int value)
+{
+    if (_stmt == NULL) {
+        return;
+    }
+    _stmt->setInt(index+1, value);
+    return;
+}

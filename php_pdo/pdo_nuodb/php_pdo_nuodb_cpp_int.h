@@ -89,6 +89,10 @@ public:
     char const * getString(size_t column);
     unsigned int getInteger(size_t column);
     unsigned long getLong(size_t column);
+    size_t getNumberOfParameters();
+
+    void setInteger(size_t index, int value);
+
 };
 
 #endif	/* PHP_PDO_NUODB_INT_CPP_H */

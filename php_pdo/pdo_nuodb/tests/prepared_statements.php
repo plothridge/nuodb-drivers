@@ -2,7 +2,7 @@
 try {  
   $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "dba", "goalie") or die;
   $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  $player_number = 12;
+  $player_number = 30;
   $sql = "select * from hockey where NUMBER = :number";
   $stmt = $db->prepare($sql);
   $stmt->bindParam(':number', $player_number, PDO::PARAM_INT);
