@@ -40,7 +40,7 @@ module Arel
       end
 
       def visit_Arel_Nodes_Limit(o)
-        "TOP (#{visit o.expr})"
+        "FETCH FIRST #{visit o.expr} ROWS ONLY"
       end
 
       def visit_Arel_Nodes_Lock(o)
