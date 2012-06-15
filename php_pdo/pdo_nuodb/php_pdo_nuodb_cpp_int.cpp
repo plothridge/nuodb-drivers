@@ -347,3 +347,13 @@ void PdoNuoDbStatement::setInteger(size_t index, int value)
     _stmt->setInt(index+1, value);
     return;
 }
+
+void PdoNuoDbStatement::setString(size_t index, const char *value)
+{
+    if (_stmt == NULL) {
+        return;
+    }
+    _stmt->setString(index+1, value);
+    return;
+}
+

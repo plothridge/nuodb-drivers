@@ -92,6 +92,7 @@ public:
     size_t getNumberOfParameters();
 
     void setInteger(size_t index, int value);
+    void setString(size_t index, const char *value);
 
 };
 

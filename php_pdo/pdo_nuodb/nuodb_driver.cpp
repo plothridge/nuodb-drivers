@@ -107,84 +107,6 @@ static int nuodb_handle_closer(pdo_dbh_t * dbh TSRMLS_DC) /* {{{ */
 static int nuodb_handle_preparer(pdo_dbh_t * dbh, const char * sql, long sql_len, /* {{{ */
                                  pdo_stmt_t * stmt, zval * driver_options TSRMLS_DC)
 {
-#if 0
-
-  char *nsql = NULL;
-  int nsql_len = 0;
-  int ret;
-  pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *)dbh->driver_data;
-  pdo_nuodb_stmt * S = NULL;
-  PdoNuoDbStatement * s;
-
-  stmt->supports_placeholders = PDO_PLACEHOLDER_POSITIONAL;
-  ret = pdo_parse_params(stmt, (char*)sql, sql_len, &nsql, &nsql_len TSRMLS_CC);
-  if (ret == 1) {
-    /* query was rewritten */
-    sql = nsql;
-    sql_len = nsql_len;
-  } else if (ret == -1) {
-    /* failed to parse */
-    strcpy(dbh->error_code, stmt->error_code);
-    return 0;
-  }
-
-  HashTable * np;
-  nuo_params params;
-  char result[8];
-  ALLOC_HASHTABLE(np);
-  zend_hash_init(np, 8, NULL, NULL, 0);
-
-  /* allocate and prepare statement */
-  if (!nuodb_alloc_prepare_stmt(dbh, sql, sql_len, &s, np TSRMLS_CC)) {
-    // TODO - handle error
-    return 0;
-  }
-
-  if (nsql) {
-    efree(nsql);
-  }
-
-
-  S = (pdo_nuodb_stmt *) ecalloc(1, sizeof(*S));
-  S->H = H;
-  S->stmt = s;
-  S->fetch_buf = NULL; // TODO: Needed?
-  S->named_params = np;
-  S->in_params = NULL;
-  S->out_params = NULL;
-
-  // TODO: S->statement_type =
-
-  stmt->driver_data = S;
-  stmt->methods = &nuodb_stmt_methods;
-
-  S->num_params = S->stmt->getNumberOfParameters();
-
-  if (S->num_params) {
-		S->params_given = 0;
-//#if 0
-//		S->params = NULL;
-//#else
-//		S->params = ecalloc(S->num_params, sizeof(MYSQL_BIND));
-//		S->in_null = ecalloc(S->num_params, sizeof(my_bool));
-//		S->in_length = ecalloc(S->num_params, sizeof(unsigned long));
-//#endif
-	}
-	dbh->alloc_own_columns = 1;
-
-	// TODO needed?
-	// S->max_length = pdo_attr_lval(driver_options, PDO_ATTR_MAX_COLUMN_LEN, 0 TSRMLS_CC);
-
-	return 1;
-
-fallback:
-end:
-    stmt->supports_placeholders = PDO_PLACEHOLDER_NONE;
-    return 1;
-
-#endif
-
-#if 1
     zval ** value;
     HashPosition iterator;
     char * string_key;
@@ -257,7 +179,6 @@ end:
         efree(S);
     }
     return 0;
-#endif
 
 }
 /* }}} */

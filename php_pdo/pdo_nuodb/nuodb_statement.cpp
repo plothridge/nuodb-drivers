@@ -345,8 +345,6 @@ static int nuodb_stmt_param_hook(pdo_stmt_t * stmt, struct pdo_bound_param_data 
 
     nuodb_param = &nuodb_params->params[param->paramno];
 
-// TODO -- shut off for now...
-#if 1
 	switch (event_type) {
 		char *value;
 		unsigned long value_len;
@@ -381,6 +379,11 @@ static int nuodb_stmt_param_hook(pdo_stmt_t * stmt, struct pdo_bound_param_data 
                     nuodb_param->sqltype = PDO_NUODB_SQLTYPE_INTEGER;
                     break;
                 }
+                case PDO_PARAM_STR:
+                {
+                    nuodb_param->sqltype = PDO_NUODB_SQLTYPE_STRING;
+                    break;
+                }
             }
             break;
 
@@ -405,6 +408,10 @@ static int nuodb_stmt_param_hook(pdo_stmt_t * stmt, struct pdo_bound_param_data 
 			switch (nuodb_param->sqltype) {
 			    case PDO_NUODB_SQLTYPE_INTEGER: {
                     S->stmt->setInteger(param->paramno,  Z_LVAL_P(param->parameter));
+                    break;
+			    }
+			    case PDO_NUODB_SQLTYPE_STRING: {
+                    S->stmt->setString(param->paramno,  Z_STRVAL_P(param->parameter));
                     break;
 			    }
 			    default: {
@@ -513,7 +520,6 @@ static int nuodb_stmt_param_hook(pdo_stmt_t * stmt, struct pdo_bound_param_data 
 		default:
 			;
 	}
-#endif
 
     return 1;
 }
