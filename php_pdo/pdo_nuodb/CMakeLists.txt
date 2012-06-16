@@ -149,3 +149,5 @@ INSTALL(TARGETS NuoPhpPdo
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     )
+
+ADD_TEST(001.phpt tests/001.phpt)
