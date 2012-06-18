@@ -74,6 +74,7 @@ class PdoNuoDbStatement
 private:
     PdoNuoDbHandle * _dbh;
     NuoDB::PreparedStatement * _stmt;
+    int _stmt_type; // 0=unknown, 1=select, 2=update
     NuoDB::ResultSet * _rs;
 public:
     PdoNuoDbStatement(PdoNuoDbHandle * dbh);
@@ -89,6 +90,9 @@ public:
     char const * getString(size_t column);
     unsigned int getInteger(size_t column);
     unsigned long getLong(size_t column);
+    unsigned long getTimestamp(size_t column);
+    unsigned long getDate(size_t column);
+    unsigned long getTime(size_t column);
     size_t getNumberOfParameters();
 
     void setInteger(size_t index, int value);
