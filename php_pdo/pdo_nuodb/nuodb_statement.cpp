@@ -125,7 +125,7 @@ static int nuodb_stmt_execute(pdo_stmt_t * stmt TSRMLS_DC) /* {{{ */
 
     try
     {
-        S->stmt->executeQuery();
+        S->stmt->execute();
         S->cursor_open = S->stmt->hasResultSet();
         stmt->column_count = S->stmt->getColumnCount();
     }
@@ -204,7 +204,7 @@ static int nuodb_stmt_describe(pdo_stmt_t * stmt, int colno TSRMLS_DC) /* {{{ */
     case PDO_NUODB_SQLTYPE_INTEGER:
     {
         col->maxlen = 24;
-        col->param_type = PDO_PARAM_STR;
+        col->param_type = PDO_PARAM_STR;  // TODO: Is this correct?  Shouldn't it be a long?
         break;
     }
     case PDO_NUODB_SQLTYPE_BIGINT:
@@ -225,16 +225,19 @@ static int nuodb_stmt_describe(pdo_stmt_t * stmt, int colno TSRMLS_DC) /* {{{ */
     }
     case PDO_NUODB_SQLTYPE_DATE:
     {
+        col->maxlen = 24;
         col->param_type = PDO_PARAM_STR;
         break;
     }
     case PDO_NUODB_SQLTYPE_TIME:
     {
+        col->maxlen = 24;
         col->param_type = PDO_PARAM_STR;
         break;
     }
     case PDO_NUODB_SQLTYPE_TIMESTAMP:
     {
+        col->maxlen = 24;
         col->param_type = PDO_PARAM_STR;
         break;
     }
@@ -253,52 +256,58 @@ static int nuodb_stmt_get_col(pdo_stmt_t * stmt, int colno, char ** ptr, /* {{{ 
     int sqlTypeNumber = S->stmt->getSqlType(colno);
     switch (sqlTypeNumber)
     {
-    case PDO_NUODB_SQLTYPE_BOOLEAN:
-    {
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_INTEGER:
-    {
-        *ptr = (char *)emalloc(CHAR_BUF_LEN);
-        *len = slprintf(*ptr, CHAR_BUF_LEN, "%d", S->stmt->getInteger(colno));
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_BIGINT:
-    {
-        *ptr = (char *)emalloc(CHAR_BUF_LEN);
-        *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getLong(colno));
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_DOUBLE:
-    {
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_STRING:
-    {
-        const char * str = S->stmt->getString(colno);
-        if (str == NULL)
+        case PDO_NUODB_SQLTYPE_BOOLEAN:
         {
             break;
         }
-        int str_len = strlen(str);
-        *ptr = (char *) emalloc(str_len+1);
-        memmove(*ptr, str, str_len);
-        *((*ptr)+str_len)= 0;
-        *len = str_len;
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_DATE:
-    {
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_TIME:
-    {
-        break;
-    }
-    case PDO_NUODB_SQLTYPE_TIMESTAMP:
-    {
-        break;
-    }
+        case PDO_NUODB_SQLTYPE_INTEGER:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getInteger(colno));
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_BIGINT:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getLong(colno));
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_DOUBLE:
+        {
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_STRING:
+        {
+            const char * str = S->stmt->getString(colno);
+            if (str == NULL)
+            {
+                break;
+            }
+            int str_len = strlen(str);
+            *ptr = (char *) emalloc(str_len+1);
+            memmove(*ptr, str, str_len);
+            *((*ptr)+str_len)= 0;
+            *len = str_len;
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_DATE:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getDate(colno));
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_TIME:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getTime(colno));
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_TIMESTAMP:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getTimestamp(colno));
+            break;
+        }
     }
 
     return 1;
@@ -499,15 +508,15 @@ static int nuodb_stmt_param_hook(pdo_stmt_t * stmt, struct pdo_bound_param_data 
 							ZVAL_LONG(param->parameter, *(long*)value);
 							break;
 						}
-                                        case PDO_PARAM_EVT_NORMALIZE:
-                                                 if (!param->is_param) {
-                                                      char *s = param->name;
-                                                      while (*s != '\0') {
-                                                           *s = toupper(*s);
-                                                            s++;
-                                                      }
-                                                 }
-                                                        break;
+                    case PDO_PARAM_EVT_NORMALIZE:
+                        if (!param->is_param) {
+                            char *s = param->name;
+                            while (*s != '\0') {
+                               *s = toupper(*s);
+                               s++;
+                            }
+                        }
+                        break;
 					default:
 						ZVAL_NULL(param->parameter);
 				}
