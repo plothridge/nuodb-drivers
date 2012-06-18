@@ -1,5 +1,6 @@
 <?php 
 // Test prepared statement with Integer parameter for NuoDB Timestamp column.
+date_default_timezone_set('America/New_York');
 try {  
   $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "dba", "goalie") or die;
   $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -11,6 +12,7 @@ try {
   $result = $stmt->fetchAll();
   foreach ($result as $row) {
      print_r ($row);
+     print $row[0] . " " . $row[1] . " " . $row[2] . " " . date('Y-m-d', $row[3]) . " " . date('H:i:s', $row[4]) . "\n";
   }
   $db = NULL;
 } catch(PDOException $e) {  

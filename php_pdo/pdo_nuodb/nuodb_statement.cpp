@@ -225,20 +225,17 @@ static int nuodb_stmt_describe(pdo_stmt_t * stmt, int colno TSRMLS_DC) /* {{{ */
     }
     case PDO_NUODB_SQLTYPE_DATE:
     {
-        col->maxlen = 24;
-        col->param_type = PDO_PARAM_STR;
+        col->param_type = PDO_PARAM_INT;
         break;
     }
     case PDO_NUODB_SQLTYPE_TIME:
     {
-        col->maxlen = 24;
-        col->param_type = PDO_PARAM_STR;
+        col->param_type = PDO_PARAM_INT;
         break;
     }
     case PDO_NUODB_SQLTYPE_TIMESTAMP:
     {
-        col->maxlen = 24;
-        col->param_type = PDO_PARAM_STR;
+        col->param_type = PDO_PARAM_INT;
         break;
     }
     }
@@ -292,20 +289,26 @@ static int nuodb_stmt_get_col(pdo_stmt_t * stmt, int colno, char ** ptr, /* {{{ 
         }
         case PDO_NUODB_SQLTYPE_DATE:
         {
-            *ptr = (char *)emalloc(CHAR_BUF_LEN);
-            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getDate(colno));
+            *len = sizeof(long);
+            *ptr = (char *)emalloc(*len);
+            long d = S->stmt->getDate(colno);
+            memmove(*ptr, &d, *len);
             break;
         }
         case PDO_NUODB_SQLTYPE_TIME:
         {
-            *ptr = (char *)emalloc(CHAR_BUF_LEN);
-            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getTime(colno));
+            *len = sizeof(long);
+            *ptr = (char *)emalloc(*len);
+            long t = S->stmt->getTime(colno);
+            memmove(*ptr, &t, *len);
             break;
         }
         case PDO_NUODB_SQLTYPE_TIMESTAMP:
         {
-            *ptr = (char *)emalloc(CHAR_BUF_LEN);
-            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getTimestamp(colno));
+            *len = sizeof(long);
+            *ptr = (char *)emalloc(*len);
+            long ts = S->stmt->getTimestamp(colno);
+            memmove(*ptr, &ts, *len);
             break;
         }
     }

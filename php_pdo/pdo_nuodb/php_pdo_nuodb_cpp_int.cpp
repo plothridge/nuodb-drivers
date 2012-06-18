@@ -351,7 +351,7 @@ unsigned long PdoNuoDbStatement::getTimestamp(size_t column)
         return 0;
     }
     NuoDB::Timestamp *ts = _rs->getTimestamp(column+1);
-    return ts->getMilliseconds();
+    return ts->getSeconds();
 }
 
 unsigned long PdoNuoDbStatement::getTime(size_t column)
@@ -361,7 +361,7 @@ unsigned long PdoNuoDbStatement::getTime(size_t column)
         return 0;
     }
     NuoDB::Time *time = _rs->getTime(column+1);
-    return time->getMilliseconds();
+    return time->getSeconds();
 }
 
 unsigned long PdoNuoDbStatement::getDate(size_t column)
@@ -371,7 +371,7 @@ unsigned long PdoNuoDbStatement::getDate(size_t column)
         return 0;
     }
     NuoDB::Date *date = _rs->getDate(column+1);
-    return date->getMilliseconds();
+    return date->getSeconds();
 }
 
 size_t PdoNuoDbStatement::getNumberOfParameters()
