@@ -99,7 +99,7 @@ class NuoSimpleTest < Test::Unit::TestCase
       a.zip = "00001"
     end
 
-    assert_not_nil u
+    assert_not_nil u.addr
 
     u = User.create do |u|
       u.first_name = "Barney"
@@ -117,26 +117,31 @@ class NuoSimpleTest < Test::Unit::TestCase
       a.zip = "00001"
     end
 
-    assert_not_nil u
+    assert_not_nil u.addr
 
     assert_equal 2, User.count
 
+    mask = 0
     User.find do |entry|
       case entry.id 
       when fred_id
         assert_equal 'Fred', entry.first_name
         assert_equal 'Flintstone', entry.last_name
         assert_equal '301 Cobblestone Way', entry.addr.street
+        mask += 1
         nil
       when barney_id
         assert_equal 'Barney', entry.first_name
         assert_equal 'Rubble', entry.last_name
         assert_equal '303 Cobblestone Way', entry.addr.street
+        mask += 10
         nil
       else
-        raise 'unknown entry.id'
+        raise "unknown entry.id: #{entry.id}"
       end
     end
+
+    assert_equal 11, mask
 
     User.all.each do |entry|
       entry.first_name = entry.first_name.upcase
