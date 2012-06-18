@@ -21,12 +21,16 @@ function init_db()
   global $db;
 	try {
 	    $db = open_db();
-	    $sql = "create table test1 (i integer, c varchar(100))";
+	    $sql = "create table test1 (i integer, c varchar(100), ts timestamp, d date, t time)";
 	    $db->query($sql);
 	    $db->commit();
 	    $sql = "insert into test1(i, c) values(1, 'test table not created with isql')";
 	    $db->query($sql);
 	    $db->commit();
+	    $sql = "insert into test1(i, c, ts, d, t) values(2, 'test', 'today', '1962-12-28', '12:34:56')";
+	    $db->query($sql);
+	    $db->commit();
+
 	} 
 	catch(PDOException $e) {	
     	  echo "FAILED: ";
