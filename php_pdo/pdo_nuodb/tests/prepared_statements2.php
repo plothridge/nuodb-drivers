@@ -1,4 +1,5 @@
 <?php 
+// Test prepared statement with String parameter.
 try {  
   $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "dba", "goalie") or die;
   $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

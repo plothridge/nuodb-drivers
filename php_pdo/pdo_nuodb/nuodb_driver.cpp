@@ -60,6 +60,9 @@ void _nuodb_error(pdo_dbh_t * dbh, pdo_stmt_t * stmt, char const * file, long li
     pdo_nuodb_db_handle * H = stmt ? ((pdo_nuodb_stmt *)stmt->driver_data)->H
                               : (pdo_nuodb_db_handle *)dbh->driver_data;
     pdo_error_type * const error_code = stmt ? &stmt->error_code : &dbh->error_code;
+    // TODO -- We could do a better job of mapping NuoDB errors codes into PDO error
+    // codes, but for now just use "HY000"
+    strcpy(*error_code, "HY000");
 }
 /* }}} */
 
@@ -93,6 +96,7 @@ static int nuodb_handle_closer(pdo_dbh_t * dbh TSRMLS_DC) /* {{{ */
     pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *)dbh->driver_data;
     if (H == NULL)
     {
+        RECORD_ERROR(dbh);
         return 0;
     }
     _commit_if_auto(dbh);
@@ -197,6 +201,7 @@ static long nuodb_handle_doer(pdo_dbh_t * dbh, const char * sql, long sql_len TS
     }
     catch (...)
     {
+        RECORD_ERROR(dbh);
         dbh->in_txn = in_txn_state;
         return -1;
     }
@@ -265,7 +270,7 @@ static int nuodb_handle_commit(pdo_dbh_t * dbh TSRMLS_DC) /* {{{ */
     }
     catch (...)
     {
-        // TODO:
+        RECORD_ERROR(dbh);
         return 0;
     }
     return 1;
@@ -282,7 +287,7 @@ static int nuodb_handle_rollback(pdo_dbh_t * dbh TSRMLS_DC) /* {{{ */
     }
     catch (...)
     {
-        // TODO:
+        RECORD_ERROR(dbh);
         return 0;
     }
     return 1;
@@ -311,6 +316,7 @@ static int nuodb_alloc_prepare_stmt(pdo_dbh_t * dbh, const char * sql, long sql_
     {
         if (!nuodb_handle_begin(dbh TSRMLS_CC))
         {
+            RECORD_ERROR(dbh);
             return 0;
         }
         dbh->in_txn = 1;
@@ -400,6 +406,7 @@ static int nuodb_handle_set_attribute(pdo_dbh_t * dbh, long attr, zval * val TSR
                     /* turning on auto_commit with an open transaction is illegal, because
                     we won't know what to do with it */
                     H->last_app_error = "Cannot enable auto-commit while a transaction is already open";
+                    RECORD_ERROR(dbh);
                     return 0;
                 }
                 else
@@ -422,6 +429,7 @@ static int nuodb_handle_set_attribute(pdo_dbh_t * dbh, long attr, zval * val TSR
         return 1;
 
     }
+    RECORD_ERROR(dbh);
     return 0;
 }
 /* }}} */
@@ -454,6 +462,7 @@ static int nuodb_handle_get_attribute(pdo_dbh_t * dbh, long attr, zval * val TSR
         ZVAL_BOOL(val, H->fetch_table_names);
         return 1;
     }
+    RECORD_ERROR(dbh);
     return 0;
 }
 /* }}} */

@@ -21,7 +21,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
-				<Option parameters="-c $HOME/php_debug.ini tests/prepared_statements2.php" />
+				<Option parameters="-c $HOME/php_debug.ini tests/prepared_statements4.php" />
 				<Option host_application="/usr/local/bin/php" />
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
