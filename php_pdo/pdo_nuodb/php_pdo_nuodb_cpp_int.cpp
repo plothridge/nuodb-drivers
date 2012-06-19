@@ -155,13 +155,8 @@ void PdoNuoDbHandle::rollback() {
     _con->rollback();
 }
 
-
-
-
-
-
-
-PdoNuoDbStatement::PdoNuoDbStatement(PdoNuoDbHandle *dbh) : _dbh(dbh), _stmt(NULL), _rs(NULL) {
+PdoNuoDbStatement::PdoNuoDbStatement(PdoNuoDbHandle * dbh) : _dbh(dbh), _stmt(NULL), _stmt_type(0), _rs(NULL)
+{
     // empty
 }
 
@@ -180,6 +175,17 @@ SqlPreparedStatement *PdoNuoDbStatement::createStatement(char const *sql) {
     {
         return NULL;
     }
+
+    char up_sql[7];
+    int i;
+    for (i=0; i<6; i++) {
+        if (sql[i] == '\0') break;
+        up_sql[i] = toupper(sql[i]);
+    }
+    for (; i<7; i++) up_sql[i] = '\0';
+    if (strncmp(up_sql, "SELECT", 6) == 0) _stmt_type = 1;
+    if (strncmp(up_sql, "UPDATE", 6) == 0) _stmt_type = 2;
+
     try {
     _stmt = _con->prepareStatement(sql);
     _rs = NULL;
@@ -196,9 +202,19 @@ SqlPreparedStatement *PdoNuoDbStatement::createStatement(char const *sql) {
     return _stmt;
 }
 
-void PdoNuoDbStatement::execute() {
-    if (_stmt == NULL) return;
-    _stmt->execute();
+void PdoNuoDbStatement::execute()
+{
+    if (_stmt == NULL)
+    {
+        return;
+    }
+    if (_stmt_type == 1) {
+        _rs = _stmt->executeQuery();
+    } else if (_stmt_type == 2) {
+        _stmt->executeUpdate();
+    } else {
+        _stmt->execute();
+    }
 }
 
 void PdoNuoDbStatement::executeQuery() {
@@ -273,3 +289,64 @@ unsigned long PdoNuoDbStatement::getLong(size_t column) {
     if (_rs == NULL) return 0;
     return _rs->getLong(column+1);
 }
+
+unsigned long PdoNuoDbStatement::getTimestamp(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return 0;
+    }
+    NuoDB::Timestamp *ts = _rs->getTimestamp(column+1);
+    return ts->getSeconds();
+}
+
+unsigned long PdoNuoDbStatement::getTime(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return 0;
+    }
+    NuoDB::Time *time = _rs->getTime(column+1);
+    return time->getSeconds();
+}
+
+unsigned long PdoNuoDbStatement::getDate(size_t column)
+{
+    if (_rs == NULL)
+    {
+        return 0;
+    }
+    NuoDB::Date *date = _rs->getDate(column+1);
+    return date->getSeconds();
+}
+
+size_t PdoNuoDbStatement::getNumberOfParameters()
+{
+    if (_stmt == NULL) {
+        return 0;
+    }
+    NuoDB::ParameterMetaData *pmd = _stmt->getParameterMetaData();
+    if (pmd == NULL) {
+        return 0;
+    }
+    return pmd->getParameterCount();
+}
+
+void PdoNuoDbStatement::setInteger(size_t index, int value)
+{
+    if (_stmt == NULL) {
+        return;
+    }
+    _stmt->setInt(index+1, value);
+    return;
+}
+
+void PdoNuoDbStatement::setString(size_t index, const char *value)
+{
+    if (_stmt == NULL) {
+        return;
+    }
+    _stmt->setString(index+1, value);
+    return;
+}
+

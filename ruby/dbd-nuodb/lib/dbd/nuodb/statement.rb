@@ -122,7 +122,7 @@ module DBI::DBD::NuoDB
         end
                      
         retval << {
-          'name' => meta.getColumnName(i),
+          'name' => meta.getColumnName(i).downcase,
           'sql_type' => type,
           'dbi_type' => dbi_type,
           'type_name' => meta.getColumnTypeName(i),
@@ -174,6 +174,8 @@ module DBI::DBD::NuoDB
             retval << result_set.getTimestamp(i)
           when :SQL_CHAR
             retval << result_set.getChar(i)
+          when :SQL_BOOLEAN
+            retval << result_set.getBoolean(i)
           else
             raise "unknown type #{type} for column #{i}"
           end

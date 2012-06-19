@@ -7,8 +7,6 @@ PDO_Nuodb: connect/disconnect
 
 	require("testdb.inc");
     
-	$db = new PDO("nuodb:dbname=$test_base",$user,$password) or die;
-	unset($db);
 	echo "done\n";
 	
 ?>

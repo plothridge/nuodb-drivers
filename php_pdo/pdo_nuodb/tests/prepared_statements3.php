@@ -1,12 +1,12 @@
-<?php 
-// Test prepared statement with Integer parameter.
+<?php
+// Test prepared statement with NULL string parameter. 
 try {  
   $db = new PDO("nuodb:database=test@localhost;schema=Hockey", "dba", "goalie") or die;
   $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  $player_number = 30;
-  $sql = "select * from hockey where NUMBER = :number";
+  $position = NULL;
+  $sql = "select count(*) from hockey where POSITION = :position";
   $stmt = $db->prepare($sql);
-  $stmt->bindParam(':number', $player_number, PDO::PARAM_INT);
+  $stmt->bindParam(':position', $position, PDO::PARAM_STR);
   $stmt->execute();
   $result = $stmt->fetchAll();
   foreach ($result as $row) {

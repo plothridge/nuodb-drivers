@@ -56,9 +56,12 @@ static int nuodb_alloc_prepare_stmt(pdo_dbh_t*, const char*, long, PdoNuoDbState
 /* map driver specific SQLSTATE error message to PDO error */
 void _nuodb_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, char const *file, long line TSRMLS_DC) /* {{{ */
 {
-	pdo_nuodb_db_handle *H = stmt ? ((pdo_nuodb_stmt *)stmt->driver_data)->H
-		: (pdo_nuodb_db_handle *)dbh->driver_data;
-	pdo_error_type *const error_code = stmt ? &stmt->error_code : &dbh->error_code;
+    pdo_nuodb_db_handle * H = stmt ? ((pdo_nuodb_stmt *)stmt->driver_data)->H
+                              : (pdo_nuodb_db_handle *)dbh->driver_data;
+    pdo_error_type * const error_code = stmt ? &stmt->error_code : &dbh->error_code;
+    // TODO -- We could do a better job of mapping NuoDB errors codes into PDO error
+    // codes, but for now just use "HY000"
+    strcpy(*error_code, "HY000");
 }
 /* }}} */
 
@@ -81,9 +84,13 @@ static int _commit_if_auto(pdo_dbh_t *dbh) {
 /* called by PDO to close a db handle */
 static int nuodb_handle_closer(pdo_dbh_t *dbh TSRMLS_DC) /* {{{ */
 {
-	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
-	if (H == NULL) return 0;
-	_commit_if_auto(dbh);
+    pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *)dbh->driver_data;
+    if (H == NULL)
+    {
+        RECORD_ERROR(dbh);
+        return 0;
+    }
+    _commit_if_auto(dbh);
     H->db->closeConnection();
     delete H->db;
 	pefree(H, dbh->is_persistent);
@@ -115,22 +122,48 @@ static int nuodb_handle_preparer(pdo_dbh_t *dbh, const char *sql, long sql_len, 
         S->H = H;
         S->stmt = s;
         S->named_params = np;
+        S->in_params = NULL;
+        S->out_params = NULL;
 
-		stmt->driver_data = S;
-		stmt->methods = &nuodb_stmt_methods;
-		stmt->supports_placeholders = PDO_PLACEHOLDER_POSITIONAL;
+        // TODO: S->statement_type =
 
-		return 1;
+        // allocate input params
+        int num_input_params = zend_hash_num_elements(np);
+        int index = 0;
+        if (num_input_params > 0)
+        {
+            S->in_params = (nuo_params *) ecalloc(1, NUO_PARAMS_LENGTH(num_input_params));
+            S->in_params->num_alloc = S->in_params->num_params = num_input_params;
+            zend_hash_internal_pointer_reset_ex(np, &iterator);
+            while (zend_hash_get_current_data_ex(np, (void **) &value, &iterator) == SUCCESS)
+            {
+                zend_hash_get_current_key_ex(np, &string_key, &str_len, &num_key, 0, &iterator);
+                memcpy(S->in_params->params[index].col_name, string_key, str_len+1);
+                S->in_params->params[index].col_name_length = str_len;
+                S->in_params->params[index].len = 0;
+                S->in_params->params[index].data = NULL;
+                zend_hash_move_forward_ex(np, &iterator);
+            }
+        }
 
-    } while(0);
+        stmt->driver_data = S;
+        stmt->methods = &nuodb_stmt_methods;
+        stmt->supports_placeholders = PDO_PLACEHOLDER_POSITIONAL;
 
-	RECORD_ERROR(dbh);
-	zend_hash_destroy(np);
-	FREE_HASHTABLE(np);
-	if (S) {
-		efree(S);
-	}
-	return 0;
+        return 1;
+
+    }
+    while (0);
+
+    RECORD_ERROR(dbh);
+    zend_hash_destroy(np);
+    FREE_HASHTABLE(np);
+    if (S)
+    {
+        efree(S);
+    }
+    return 0;
+
 }
 /* }}} */
 
@@ -144,7 +177,10 @@ static long nuodb_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRM
         dbh->in_txn = 1;
         stmt->execute();
         _commit_if_auto(dbh);
-    } catch(...) {
+    }
+    catch (...)
+    {
+        RECORD_ERROR(dbh);
         dbh->in_txn = in_txn_state;
         return -1;
     }
@@ -207,11 +243,13 @@ static int nuodb_handle_commit(pdo_dbh_t *dbh TSRMLS_DC) /* {{{ */
 	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
 	try {
         H->db->commit();
-	} catch(...) {
-	    // TODO:
-	    return 0;
-	}
-	return 1;
+    }
+    catch (...)
+    {
+        RECORD_ERROR(dbh);
+        return 0;
+    }
+    return 1;
 }
 /* }}} */
 
@@ -221,11 +259,13 @@ static int nuodb_handle_rollback(pdo_dbh_t *dbh TSRMLS_DC) /* {{{ */
 	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
 	try {
         H->db->rollback();
-	} catch(...) {
-	    // TODO:
-	    return 0;
-	}
-	return 1;
+    }
+    catch (...)
+    {
+        RECORD_ERROR(dbh);
+        return 0;
+    }
+    return 1;
 }
 /* }}} */
 
@@ -240,59 +280,74 @@ static int nuodb_alloc_prepare_stmt(pdo_dbh_t *dbh, const char *sql, long sql_le
 
     *s = NULL;
 
-	/* There is no max sql statement length in NuoDB - but use 1Mib for now */
-	if (sql_len > 0x100000) {
-		strcpy(dbh->error_code, "01004");
-		return 0;
-	}
+    /* There is no max sql statement length in NuoDB - but use 1Mib for now */
+    if (sql_len > 0x100000)
+    {
+        strcpy(dbh->error_code, "01004");
+        return 0;
+    }
 
-	/* start a new transaction implicitly if auto_commit is enabled and no transaction is open */
-	if (dbh->auto_commit && !dbh->in_txn) {
-		if (!nuodb_handle_begin(dbh TSRMLS_CC)) {
-			return 0;
-		}
-		dbh->in_txn = 1;
-	}
-
-
-	/* in order to support named params,
-	   we need to replace :foo by ?, and store the name we just replaced */
-	new_sql = c = (char *) emalloc(sql_len+1);
-
-	for (l = in_quote = in_param = 0; l <= sql_len; ++l) {
-		if ( !(in_quote ^= (sql[l] == '\''))) {
-			if (!in_param) {
-				switch (sql[l]) {
-					case ':':
-						in_param = 1;
-						ppname = pname;
-						*ppname++ = sql[l];
-					case '?':
-						*c++ = '?';
-						++pindex;
-					continue;
-				}
-			} else {
-                                if ((in_param &= ((sql[l] >= 'A' && sql[l] <= 'Z') || (sql[l] >= 'a' && sql[l] <= 'z')
-                                        || (sql[l] >= '0' && sql[l] <= '9') || sql[l] == '_' || sql[l] == '-'))) {
+    /* start a new transaction implicitly if auto_commit is enabled and no transaction is open */
+    if (dbh->auto_commit && !dbh->in_txn)
+    {
+        if (!nuodb_handle_begin(dbh TSRMLS_CC))
+        {
+            RECORD_ERROR(dbh);
+            return 0;
+        }
+        dbh->in_txn = 1;
+    }
 
 
-					*ppname++ = sql[l];
-					continue;
-				} else {
-					*ppname++ = 0;
-					if (named_params) {
-						zend_hash_update(named_params, pname, (unsigned int)(ppname-pname),
-							(void*)&pindex, sizeof(long)+1,NULL);
-					}
-				}
-			}
-		}
-		*c++ = sql[l];
-	}
+    /* in order to support named params,
+    we need to replace :foo by ?, and store the name we just replaced */
+    new_sql = c = (char *) emalloc(sql_len+1);
 
-	/* prepare the statement */
-    try {
+    for (l = in_quote = in_param = 0; l <= sql_len; ++l)
+    {
+        if ( !(in_quote ^= (sql[l] == '\'')))
+        {
+            if (!in_param)
+            {
+                switch (sql[l])
+                {
+                case ':':
+                    in_param = 1;
+                    ppname = pname;
+                    *ppname++ = sql[l];
+                case '?':
+                    *c++ = '?';
+                    ++pindex;
+                    continue;
+                }
+            }
+            else
+            {
+                if ((in_param &= ((sql[l] >= 'A' && sql[l] <= 'Z') || (sql[l] >= 'a' && sql[l] <= 'z')
+                                  || (sql[l] >= '0' && sql[l] <= '9') || sql[l] == '_' || sql[l] == '-')))
+                {
+
+
+                    *ppname++ = sql[l];
+                    continue;
+                }
+                else
+                {
+                    *ppname++ = 0;
+                    if (named_params)
+                    {
+                        zend_hash_update(named_params, pname, (unsigned int)(ppname-pname),
+                                         (void *)&pindex, sizeof(long)+1,NULL);
+                    }
+                }
+            }
+        }
+        *c++ = sql[l];
+    }
+
+    /* prepare the statement */
+    try
+    {
         *s = H->db->createStatement(new_sql);
     } catch(...) {
         RECORD_ERROR(dbh);
@@ -308,39 +363,48 @@ static int nuodb_alloc_prepare_stmt(pdo_dbh_t *dbh, const char *sql, long sql_le
 /* called by PDO to set a driver-specific dbh attribute */
 static int nuodb_handle_set_attribute(pdo_dbh_t *dbh, long attr, zval *val TSRMLS_DC) /* {{{ */
 {
-	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
+    pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *)dbh->driver_data;
 
-	switch (attr) {
-		case PDO_ATTR_AUTOCOMMIT:
-			convert_to_boolean(val);
+    switch (attr)
+    {
+    case PDO_ATTR_AUTOCOMMIT:
+        convert_to_boolean(val);
 
-			/* ignore if the new value equals the old one */
-			if (dbh->auto_commit ^ Z_BVAL_P(val)) {
-				if (dbh->in_txn) {
-					if (Z_BVAL_P(val)) {
-						/* turning on auto_commit with an open transaction is illegal, because
-						   we won't know what to do with it */
-						H->last_app_error = "Cannot enable auto-commit while a transaction is already open";
-						return 0;
-					} else {
-						/* close the transaction */
-						if (!nuodb_handle_commit(dbh TSRMLS_CC)) {
-							break;
-						}
-						dbh->in_txn = 0;
-					}
-				}
-				dbh->auto_commit = Z_BVAL_P(val);
-			}
-			return 1;
+        /* ignore if the new value equals the old one */
+        if (dbh->auto_commit ^ Z_BVAL_P(val))
+        {
+            if (dbh->in_txn)
+            {
+                if (Z_BVAL_P(val))
+                {
+                    /* turning on auto_commit with an open transaction is illegal, because
+                    we won't know what to do with it */
+                    H->last_app_error = "Cannot enable auto-commit while a transaction is already open";
+                    RECORD_ERROR(dbh);
+                    return 0;
+                }
+                else
+                {
+                    /* close the transaction */
+                    if (!nuodb_handle_commit(dbh TSRMLS_CC))
+                    {
+                        break;
+                    }
+                    dbh->in_txn = 0;
+                }
+            }
+            dbh->auto_commit = Z_BVAL_P(val);
+        }
+        return 1;
 
-		case PDO_ATTR_FETCH_TABLE_NAMES:
-			convert_to_boolean(val);
-			H->fetch_table_names = Z_BVAL_P(val);
-			return 1;
+    case PDO_ATTR_FETCH_TABLE_NAMES:
+        convert_to_boolean(val);
+        H->fetch_table_names = Z_BVAL_P(val);
+        return 1;
 
-	}
-	return 0;
+    }
+    RECORD_ERROR(dbh);
+    return 0;
 }
 /* }}} */
 
@@ -348,31 +412,33 @@ static int nuodb_handle_set_attribute(pdo_dbh_t *dbh, long attr, zval *val TSRML
 /* called by PDO to get a driver-specific dbh attribute */
 static int nuodb_handle_get_attribute(pdo_dbh_t *dbh, long attr, zval *val TSRMLS_DC) /* {{{ */
 {
-	pdo_nuodb_db_handle *H = (pdo_nuodb_db_handle *)dbh->driver_data;
+    pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *)dbh->driver_data;
 
-	switch (attr) {
-		case PDO_ATTR_AUTOCOMMIT:
-			ZVAL_LONG(val,dbh->auto_commit);
-			return 1;
+    switch (attr)
+    {
+    case PDO_ATTR_AUTOCOMMIT:
+        ZVAL_LONG(val,dbh->auto_commit);
+        return 1;
 
-		case PDO_ATTR_CONNECTION_STATUS:
-			return 1;
+    case PDO_ATTR_CONNECTION_STATUS:
+        return 1;
 
-		case PDO_ATTR_CLIENT_VERSION:
-			ZVAL_STRING(val,"NuoDB 1.0",1);
-			return 1;
+    case PDO_ATTR_CLIENT_VERSION:
+        ZVAL_STRING(val,"NuoDB 1.0",1);
+        return 1;
 
-		case PDO_ATTR_SERVER_VERSION:
-		case PDO_ATTR_SERVER_INFO:
-            // TODO: call the NuoDB API to get the verson number.
-			ZVAL_STRING(val,"NuoDB 1.0",1);
-			return 1;
+    case PDO_ATTR_SERVER_VERSION:
+    case PDO_ATTR_SERVER_INFO:
+        // TODO: call the NuoDB API to get the verson number.
+        ZVAL_STRING(val,"NuoDB 1.0",1);
+        return 1;
 
-		case PDO_ATTR_FETCH_TABLE_NAMES:
-			ZVAL_BOOL(val, H->fetch_table_names);
-			return 1;
-	}
-	return 0;
+    case PDO_ATTR_FETCH_TABLE_NAMES:
+        ZVAL_BOOL(val, H->fetch_table_names);
+        return 1;
+    }
+    RECORD_ERROR(dbh);
+    return 0;
 }
 /* }}} */
 

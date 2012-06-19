@@ -82,8 +82,9 @@ static int nuodb_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC) /* {{{ */
 
 	// TODO: check that (!stmt->executed) here?
 
-    try {
-        S->stmt->executeQuery();
+    try
+    {
+        S->stmt->execute();
         S->cursor_open = S->stmt->hasResultSet();
         stmt->column_count = S->stmt->getColumnCount();
     } catch(ErrorCodeException &e) {
@@ -142,7 +143,65 @@ static int nuodb_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC) /* {{{ */
     memmove(cp, column_name, colname_len);
 	*(cp+colname_len) = '\0';
     int sqlTypeNumber = S->stmt->getSqlType(colno);
-    switch(sqlTypeNumber) {
+    switch (sqlTypeNumber)
+    {
+    case PDO_NUODB_SQLTYPE_BOOLEAN:
+    {
+        col->param_type = PDO_PARAM_BOOL;
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_INTEGER:
+    {
+        col->maxlen = 24;
+        col->param_type = PDO_PARAM_STR;  // TODO: Is this correct?  Shouldn't it be a long?
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_BIGINT:
+    {
+        col->maxlen = 24;
+        col->param_type = PDO_PARAM_STR;
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_DOUBLE:
+    {
+        col->param_type = PDO_PARAM_STR;
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_STRING:
+    {
+        col->param_type = PDO_PARAM_STR;
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_DATE:
+    {
+        col->param_type = PDO_PARAM_INT;
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_TIME:
+    {
+        col->param_type = PDO_PARAM_INT;
+        break;
+    }
+    case PDO_NUODB_SQLTYPE_TIMESTAMP:
+    {
+        col->param_type = PDO_PARAM_INT;
+        break;
+    }
+    }
+
+    return 1;
+}
+/* }}} */
+
+static int nuodb_stmt_get_col(pdo_stmt_t * stmt, int colno, char ** ptr, /* {{{ */
+                              unsigned long * len, int * caller_frees TSRMLS_DC)
+{
+    pdo_nuodb_stmt * S = (pdo_nuodb_stmt *)stmt->driver_data;
+    *len = 0;
+    *ptr = NULL;
+    int sqlTypeNumber = S->stmt->getSqlType(colno);
+    switch (sqlTypeNumber)
+    {
         case PDO_NUODB_SQLTYPE_BOOLEAN:
         {
             col->param_type = PDO_PARAM_BOOL;
@@ -183,6 +242,60 @@ static int nuodb_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC) /* {{{ */
         case PDO_NUODB_SQLTYPE_DATETIME:
         {
             col->param_type = PDO_PARAM_STR;
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_INTEGER:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getInteger(colno));
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_BIGINT:
+        {
+            *ptr = (char *)emalloc(CHAR_BUF_LEN);
+            *len = slprintf(*ptr, CHAR_BUF_LEN, "%ld", S->stmt->getLong(colno));
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_DOUBLE:
+        {
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_STRING:
+        {
+            const char * str = S->stmt->getString(colno);
+            if (str == NULL)
+            {
+                break;
+            }
+            int str_len = strlen(str);
+            *ptr = (char *) emalloc(str_len+1);
+            memmove(*ptr, str, str_len);
+            *((*ptr)+str_len)= 0;
+            *len = str_len;
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_DATE:
+        {
+            *len = sizeof(long);
+            *ptr = (char *)emalloc(*len);
+            long d = S->stmt->getDate(colno);
+            memmove(*ptr, &d, *len);
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_TIME:
+        {
+            *len = sizeof(long);
+            *ptr = (char *)emalloc(*len);
+            long t = S->stmt->getTime(colno);
+            memmove(*ptr, &t, *len);
+            break;
+        }
+        case PDO_NUODB_SQLTYPE_TIMESTAMP:
+        {
+            *len = sizeof(long);
+            *ptr = (char *)emalloc(*len);
+            long ts = S->stmt->getTimestamp(colno);
+            memmove(*ptr, &ts, *len);
             break;
         }
     }
@@ -246,7 +359,185 @@ static int nuodb_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr,  /* {{{ *
         }
     }
 
-	return 1;
+    nuodb_param = &nuodb_params->params[param->paramno];
+
+	switch (event_type) {
+		char *value;
+		unsigned long value_len;
+		int caller_frees;
+
+		case PDO_PARAM_EVT_ALLOC:
+			if (param->is_param) {
+				/* allocate the parameter */
+				if (nuodb_param->data) {
+					efree(nuodb_param->data);
+				}
+				nuodb_param->data = (char *) emalloc(nuodb_param->len);
+			}
+			break;
+
+		case PDO_PARAM_EVT_FREE:
+		case PDO_PARAM_EVT_EXEC_POST:
+		case PDO_PARAM_EVT_FETCH_PRE:
+			/* do nothing */
+			break;
+
+		case PDO_PARAM_EVT_NORMALIZE:
+			if (!param->is_param) {
+				break;
+			}
+            if (param->paramno == -1) {
+                return 0;
+            }
+            switch(param->param_type) {
+                case PDO_PARAM_INT:
+                {
+                    nuodb_param->sqltype = PDO_NUODB_SQLTYPE_INTEGER;
+                    break;
+                }
+                case PDO_PARAM_STR:
+                {
+                    nuodb_param->sqltype = PDO_NUODB_SQLTYPE_STRING;
+                    break;
+                }
+            }
+            break;
+
+		case PDO_PARAM_EVT_EXEC_PRE:
+			if (!param->is_param) {
+				break;
+			}
+            if (param->paramno == -1) {
+                return 0;
+            }
+
+			//*nuodb_param->sqlind = 0;
+
+			switch (nuodb_param->sqltype & ~1) {
+				case PDO_NUODB_SQLTYPE_ARRAY:
+					strcpy(stmt->error_code, "HY000");
+					S->H->last_app_error = "Cannot bind to array field";
+					return 0;
+
+			}
+
+			switch (nuodb_param->sqltype) {
+			    case PDO_NUODB_SQLTYPE_INTEGER: {
+                    S->stmt->setInteger(param->paramno,  Z_LVAL_P(param->parameter));
+                    break;
+			    }
+			    case PDO_NUODB_SQLTYPE_STRING: {
+                    S->stmt->setString(param->paramno,  Z_STRVAL_P(param->parameter));
+                    break;
+			    }
+			    default: {
+					strcpy(stmt->error_code, "HY000");
+					S->H->last_app_error = "Cannot bind unsupported type!";
+					return 0;
+					break;
+			    }
+			}
+
+#if 0  //TODO - Shutoff NULL stuff for now
+			/* check if a NULL should be inserted */
+			switch (Z_TYPE_P(param->parameter)) {
+				int force_null;
+
+				case IS_LONG:
+					nuodb_param->sqltype = sizeof(long) == 8 ? SQL_INT64 : SQL_LONG;
+					nuodb_param->data = (void*)&Z_LVAL_P(param->parameter);
+					nuodb_param->len = sizeof(long);
+					break;
+				case IS_DOUBLE:
+					nuodb_param->sqltype = SQL_DOUBLE;
+					nuodb_param->data = (void*)&Z_DVAL_P(param->parameter);
+					nuodb_param->len = sizeof(double);
+					break;
+				case IS_STRING:
+					force_null = 0;
+
+					/* for these types, an empty string can be handled like a NULL value */
+					switch (nuodb_param->sqltype & ~1) {
+						case SQL_SHORT:
+						case SQL_LONG:
+						case SQL_INT64:
+						case SQL_FLOAT:
+						case SQL_DOUBLE:
+						case SQL_TIMESTAMP:
+						case SQL_TYPE_DATE:
+						case SQL_TYPE_TIME:
+							force_null = (Z_STRLEN_P(param->parameter) == 0);
+					}
+					if (!force_null) {
+						nuodb_param->sqltype = SQL_TEXT;
+						nuodb_param->data = Z_STRVAL_P(param->parameter);
+						nuodb_param->len	 = Z_STRLEN_P(param->parameter);
+						break;
+					}
+				case IS_NULL:
+					/* complain if this field doesn't allow NULL values */
+					if (~nuodb_param->sqltype & 1) {
+						strcpy(stmt->error_code, "HY105");
+						S->H->last_app_error = "Parameter requires non-null value";
+						return 0;
+					}
+					//*nuodb_param->sqlind = -1;
+					break;
+				default:
+					strcpy(stmt->error_code, "HY105");
+					S->H->last_app_error = "Binding arrays/objects is not supported";
+					return 0;
+			}
+#endif // end of #if 0  //TODO - Shutoff NULL stuff for now
+
+			break;
+
+		case PDO_PARAM_EVT_FETCH_POST:
+                        if (param->paramno == -1) {
+                            return 0;
+                        }
+			if (param->is_param) {
+				break;
+			}
+			value = NULL;
+			value_len = 0;
+			caller_frees = 0;
+
+			if (nuodb_stmt_get_col(stmt, param->paramno, &value, &value_len, &caller_frees TSRMLS_CC)) {
+				switch (PDO_PARAM_TYPE(param->param_type)) {
+					case PDO_PARAM_STR:
+						if (value) {
+							ZVAL_STRINGL(param->parameter, value, value_len, 1);
+							break;
+						}
+					case PDO_PARAM_INT:
+						if (value) {
+							ZVAL_LONG(param->parameter, *(long*)value);
+							break;
+						}
+                    case PDO_PARAM_EVT_NORMALIZE:
+                        if (!param->is_param) {
+                            char *s = param->name;
+                            while (*s != '\0') {
+                               *s = toupper(*s);
+                               s++;
+                            }
+                        }
+                        break;
+					default:
+						ZVAL_NULL(param->parameter);
+				}
+				if (value && caller_frees) {
+					efree(value);
+				}
+				return 1;
+			}
+			return 0;
+		default:
+			;
+	}
+
+    return 1;
 }
 /* }}} */
 

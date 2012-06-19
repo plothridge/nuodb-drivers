@@ -38,7 +38,39 @@
 #define PDO_NUODB_SQLTYPE_STRING    5
 #define PDO_NUODB_SQLTYPE_DATE      6
 #define PDO_NUODB_SQLTYPE_TIME      7
-#define PDO_NUODB_SQLTYPE_DATETIME  8
+#define PDO_NUODB_SQLTYPE_TIMESTAMP 8
+#define PDO_NUODB_SQLTYPE_ARRAY     9  // Not Yet Supported by this driver.
+
+
+typedef struct
+{
+    short sqltype;  // datatype
+    short scale; // scale factor
+    short col_name_length; // length of column name
+    char  col_name[32];
+    short len; // length of data buffer
+    char *data; // address of data buffer
+} nuo_param; // XSQLVAR
+
+typedef struct
+{
+    short num_params;  // number of actual params (sqld)
+    short num_alloc;  // number of allocated params (sqln)
+    nuo_param params[1]; // address of first param
+} nuo_params; //XSQLDA
+
+#define NUO_PARAMS_LENGTH(n)   (sizeof(nuo_params) + (n-1) * sizeof(nuo_param))
+
+typedef struct
+{
+    /* the connection handle */
+    PdoNuoDbHandle * db;
+
+    /* the last error that didn't come from the API */
+    char const * last_app_error;
+
+    /* prepend table names on column names in fetch */
+    unsigned fetch_table_names:1;
 
 typedef struct {
 	/* the connection handle */

@@ -66,26 +66,34 @@ class PdoNuoDbHandle {
         void rollback();
 };
 
-class PdoNuoDbStatement {
-    private:
-        PdoNuoDbHandle *_dbh;
-        SqlPreparedStatement *_stmt;
-        SqlResultSet *_rs;
-    public:
-        PdoNuoDbStatement(PdoNuoDbHandle *dbh);
-        ~PdoNuoDbStatement();
-        SqlPreparedStatement *createStatement(char const *sql);
-        void execute();
-        void executeQuery();
-        bool hasResultSet();
-        bool next();
-        size_t getColumnCount();
-        char const *getColumnName(size_t column);
-        int getSqlType(size_t column);
-        char const *getString(size_t column);
-        unsigned int getInteger(size_t column);
-        unsigned long getLong(size_t column);
+class PdoNuoDbStatement
+{
+private:
+    PdoNuoDbHandle * _dbh;
+    NuoDB::PreparedStatement * _stmt;
+    int _stmt_type; // 0=unknown, 1=select, 2=update
+    NuoDB::ResultSet * _rs;
+public:
+    PdoNuoDbStatement(PdoNuoDbHandle * dbh);
+    ~PdoNuoDbStatement();
+    NuoDB::PreparedStatement * createStatement(char const * sql);
+    void execute();
+    void executeQuery();
+    bool hasResultSet();
+    bool next();
+    size_t getColumnCount();
+    char const * getColumnName(size_t column);
+    int getSqlType(size_t column);
+    char const * getString(size_t column);
+    unsigned int getInteger(size_t column);
+    unsigned long getLong(size_t column);
+    unsigned long getTimestamp(size_t column);
+    unsigned long getDate(size_t column);
+    unsigned long getTime(size_t column);
+    size_t getNumberOfParameters();
 
+    void setInteger(size_t index, int value);
+    void setString(size_t index, const char *value);
 
 };
 

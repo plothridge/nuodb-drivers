@@ -35,9 +35,10 @@ class TC_Nuodb < Test::Unit::TestCase
 
     schema = ENV['NUODB_SCHEMA'] || 'test'
     hostname = ENV['NUODB_HOSTNAME'] || 'localhost'
+    port = ENV['NUODB_PORT']
     username = ENV['NUODB_USERNAME'] || 'cloud'
     password = ENV['NUODB_PASSWORD'] || 'user'
-    @dbh = DBI.connect("DBI:NuoDB:#{schema}:#{hostname}", username, password)
+    @dbh = DBI.connect("DBI:NuoDB:database=#{schema};host=#{hostname};port=#{port}", username, password)
 
     @dbh.execute("DROP TABLE IF EXISTS EMPLOYEE")
     @dbh.execute("CREATE TABLE EMPLOYEE (
