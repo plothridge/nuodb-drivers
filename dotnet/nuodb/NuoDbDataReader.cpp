@@ -33,6 +33,7 @@
 #include "NuoDbDataReader.h"
 
 NUODB_NAMESPACE_BEGIN
+
 private ref class NuoDbDataReaderEnumerator : System::Collections::IEnumerator
 {
 private:
@@ -54,7 +55,7 @@ public:
 	virtual void Reset() { throw gcnew NotSupportedException(); }
 };
 
-NuoDb::NuoDbDataReader::NuoDbDataReader(NuoDB::ResultSet* results, NuoDB::ResultSetMetaData* metadata, NuoDbCommand^ command, System::Data::CommandBehavior behavior) :
+NuoDbDataReader::NuoDbDataReader(NuoDB::ResultSet* results, NuoDB::ResultSetMetaData* metadata, NuoDbCommand^ command, System::Data::CommandBehavior behavior) :
 	_command(command),
 	_behavior(behavior),
 	_isClosed(false),
@@ -139,49 +140,7 @@ Object^ NuoDbDataReader::default::get(int ordinal)
 	if (_isClosed)
 		throw gcnew NuoDbException("The reader is closed.");
 
-	if (ordinal < 0 || ordinal >= _metadata->getColumnCount())
-		throw gcnew IndexOutOfRangeException("ordinal");
-
-	switch (_metadata->getColumnType(ordinal))
-	{
-		case NuoDB::NUOSQL_NULL: return nullptr;
-
-		case NuoDB::NUOSQL_BIT:
-		case NuoDB::NUOSQL_BOOLEAN:
-			return _results->getBoolean(ordinal);
-
-		case NuoDB::NUOSQL_TINYINT: return _results->getByte(ordinal);
-		case NuoDB::NUOSQL_SMALLINT: return _results->getShort(ordinal);
-		case NuoDB::NUOSQL_INTEGER: return _results->getInt(ordinal);
-		case NuoDB::NUOSQL_BIGINT: return _results->getLong(ordinal);
-		case NuoDB::NUOSQL_FLOAT: return _results->getFloat(ordinal);
-		case NuoDB::NUOSQL_DOUBLE: return _results->getDouble(ordinal);
-
-		case NuoDB::NUOSQL_DATE:
-		case NuoDB::NUOSQL_TIMESTAMP:
-			{
-				NuoDB::Date* d = _results->getDate(ordinal);
-
-				if (d != NULL)
-					return DateTime(1970, 1, 1).AddMilliseconds((double)d->getMilliseconds());
-
-				return DateTime::MinValue;
-			}
-
-		case NuoDB::NUOSQL_TIME:
-			{
-				NuoDB::Date* d = _results->getDate(ordinal);
-
-				if (d != NULL)
-					return DateTime(1970, 1, 1).AddSeconds((double)d->getSeconds());
-
-				return DateTime::MinValue;
-			}
-
-		default: break;
-	}
-
-	return gcnew System::String(_results->getString(ordinal));
+	return NuoDbConnection::GetColumnValue(ordinal, _results, _metadata);
 }
 
 Object^ NuoDbDataReader::default::get(String^ name)

@@ -55,6 +55,9 @@ internal:
 	property bool IsOpen { bool get() { return _connection != NULL; } }
 	property bool IsInTransaction { bool get() { return _inTransaction; } }
 
+internal:
+	static Object^ GetColumnValue(int ordinal, NuoDB::ResultSet* results, NuoDB::ResultSetMetaData* metadata);
+
 public:
 	NuoDbCommand^ CreateCommand();
 	bool Ping();

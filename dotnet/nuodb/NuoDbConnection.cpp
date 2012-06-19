@@ -68,6 +68,59 @@ NuoDbConnection::!NuoDbConnection()
 	Close();
 }
 
+Object^ NuoDbConnection::GetColumnValue(int ordinal, NuoDB::ResultSet* results, NuoDB::ResultSetMetaData* metadata)
+{
+	if (NULL == results)
+		throw gcnew ArgumentNullException("results");
+
+	if (NULL == metadata)
+		throw gcnew ArgumentNullException("metadata");
+
+	if (ordinal < 0 || ordinal >= metadata->getColumnCount())
+		throw gcnew IndexOutOfRangeException("ordinal");
+
+	switch (metadata->getColumnType(ordinal))
+	{
+		case NuoDB::NUOSQL_NULL: return nullptr;
+
+		case NuoDB::NUOSQL_BIT:
+		case NuoDB::NUOSQL_BOOLEAN:
+			return results->getBoolean(ordinal);
+
+		case NuoDB::NUOSQL_TINYINT: return results->getByte(ordinal);
+		case NuoDB::NUOSQL_SMALLINT: return results->getShort(ordinal);
+		case NuoDB::NUOSQL_INTEGER: return results->getInt(ordinal);
+		case NuoDB::NUOSQL_BIGINT: return results->getLong(ordinal);
+		case NuoDB::NUOSQL_FLOAT: return results->getFloat(ordinal);
+		case NuoDB::NUOSQL_DOUBLE: return results->getDouble(ordinal);
+
+		case NuoDB::NUOSQL_DATE:
+		case NuoDB::NUOSQL_TIMESTAMP:
+			{
+				NuoDB::Date* d = results->getDate(ordinal);
+
+				if (d != NULL)
+					return DateTime(1970, 1, 1).AddMilliseconds((double)d->getMilliseconds());
+
+				return DateTime::MinValue;
+			}
+
+		case NuoDB::NUOSQL_TIME:
+			{
+				NuoDB::Date* d = results->getDate(ordinal);
+
+				if (d != NULL)
+					return DateTime(1970, 1, 1).AddSeconds((double)d->getSeconds());
+
+				return DateTime::MinValue;
+			}
+
+		default: break;
+	}
+
+	return gcnew System::String(results->getString(ordinal));
+}
+
 NuoDbCommand^ NuoDbConnection::CreateCommand()
 {
 	NuoDbCommand^ c = gcnew NuoDbCommand();

@@ -139,8 +139,6 @@ NuoDbDataReader^ NuoDbCommand::ExecuteDataReader(System::Data::CommandBehavior b
 
 	Execute();
 
-	throw gcnew NotImplementedException();
-
 	NuoDbDataReader^ reader = gcnew NuoDbDataReader(_results, _metadata, this, behavior);
 
 	_results = NULL; // we don't own it anymore!
@@ -322,7 +320,7 @@ void NuoDbCommand::Cancel()
 
 NuoDbParameter^ NuoDbCommand::CreateParameter()
 {
-	throw gcnew NotImplementedException();
+	return gcnew NuoDbParameter();
 }
 
 System::Data::Common::DbParameter^ NuoDbCommand::CreateDbParameter()
@@ -377,46 +375,7 @@ Object^ NuoDb::NuoDbCommand::ExecuteScalar()
 		return nullptr;
 	}
 
-	switch (_metadata->getColumnType(0))
-	{
-		case NuoDB::NUOSQL_NULL: return nullptr;
-
-		case NuoDB::NUOSQL_BIT:
-		case NuoDB::NUOSQL_BOOLEAN:
-			return _results->getBoolean(0);
-
-		case NuoDB::NUOSQL_TINYINT: return _results->getByte(0);
-		case NuoDB::NUOSQL_SMALLINT: return _results->getShort(0);
-		case NuoDB::NUOSQL_INTEGER: return _results->getInt(0);
-		case NuoDB::NUOSQL_BIGINT: return _results->getLong(0);
-		case NuoDB::NUOSQL_FLOAT: return _results->getFloat(0);
-		case NuoDB::NUOSQL_DOUBLE: return _results->getDouble(0);
-
-		case NuoDB::NUOSQL_DATE:
-		case NuoDB::NUOSQL_TIMESTAMP:
-			{
-				NuoDB::Date* d = _results->getDate(0);
-
-				if (d != NULL)
-					return DateTime(1970, 1, 1).AddMilliseconds((double)d->getMilliseconds());
-
-				return DateTime::MinValue;
-			}
-
-		case NuoDB::NUOSQL_TIME:
-			{
-				NuoDB::Date* d = _results->getDate(0);
-
-				if (d != NULL)
-					return DateTime(1970, 1, 1).AddSeconds((double)d->getSeconds());
-
-				return DateTime::MinValue;
-			}
-
-		default: break;
-	}
-
-	return gcnew System::String(_results->getString(0));
+	return NuoDbConnection::GetColumnValue(0, _results, _metadata);
 }
 
 void NuoDbCommand::Prepare()
