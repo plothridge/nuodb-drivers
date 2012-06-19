@@ -45,7 +45,11 @@ module DBI::DBD::NuoDB
     #
     def connect(dbname, username, password, attr)
       hash = DBI::Utils.parse_params(dbname)
-      database = hash['database'] + '@' + hash['host']
+      if hash['port'].nil?	
+         database = hash['database'] + '@' + hash['host']
+      else
+         database = hash['database'] + '@' + hash['host'] + ':' + hash['port']
+      end
       schema = hash['database']
       handle = Nuodb::Connection.createSqlConnection database, schema, username, password
       return Database.new handle, attr
