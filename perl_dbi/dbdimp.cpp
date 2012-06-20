@@ -29,6 +29,9 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 
 	NuoDB::Connection *conn = createConnection();
 
+	if (!conn)
+		return FALSE;
+
 	NuoDB::Properties *properties = conn->allocProperties();
 	
 	if (SvOK(uid))
@@ -60,13 +63,15 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 {
 	D_imp_dbh_from_sth;
 
-	if (!imp_dbh->conn)
+	if (!imp_dbh->conn) {
+		do_error(sth, -1, "Connection is not available.");
 		return FALSE;
+	}
 
 	char *sql = SvPV_nolen(statement);
 
 	try {
-		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql);
+		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql, NuoDB::RETURN_GENERATED_KEYS);
 		DBIc_IMPSET_on(imp_sth);
 
 		NuoDB::ParameterMetaData* md = imp_sth->pstmt->getParameterMetaData();
@@ -81,15 +86,25 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 
 int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 {
+
+	if (!imp_sth->pstmt)
+		return FALSE;
+
 	try {
 		DBIc_ACTIVE_off(imp_sth);
 		imp_sth->rs = NULL;
+
 		if (imp_sth->pstmt->execute()) {
 			imp_sth->rs = imp_sth->pstmt->getResultSet();
-	
-			NuoDB::ResultSetMetaData *md = imp_sth->rs->getMetaData();
-			DBIc_NUM_FIELDS(imp_sth) = md->getColumnCount();
+		} else {
+			imp_sth->rs = imp_sth->pstmt->getGeneratedKeys();
 		}
+			
+		if (!imp_sth->rs)
+			return FALSE;
+	
+		NuoDB::ResultSetMetaData *md = imp_sth->rs->getMetaData();
+		DBIc_NUM_FIELDS(imp_sth) = md->getColumnCount();
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
 		return FALSE;
@@ -140,7 +155,9 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
 		if (imp_sth->rs)
 			imp_sth->rs->close();
 
-		imp_sth->pstmt->close();
+		if (imp_sth->pstmt)
+			imp_sth->pstmt->close();
+
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
 	}
@@ -155,6 +172,10 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth)
 
 int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
+	
+	if (!imp_dbh->conn)
+		return FALSE;
+
 	try {
 		imp_dbh->conn->commit();
 	} catch (NuoDB::SQLException& xcp) {
@@ -167,6 +188,9 @@ int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 
 int dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh)
 {
+	if (!imp_dbh->conn)
+		return FALSE;
+	
 	try {
 		imp_dbh->conn->rollback();
 	} catch (NuoDB::SQLException& xcp) {
@@ -194,6 +218,9 @@ int dbd_db_STORE_attrib(SV* dbh, imp_dbh_t* imp_dbh, SV* keysv, SV* valuesv)
 	STRLEN kl;
 	char *key = SvPV(keysv, kl);
 	bool bool_value = SvTRUE(valuesv);
+
+	if (!imp_dbh->conn)
+		return FALSE;
 
 	if (kl==10 && strEQ(key, "AutoCommit")) {
 		try {
@@ -233,6 +260,7 @@ int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 
 	try {
 		imp_dbh->conn->close();
+		imp_dbh->conn = NULL;
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
 		return FALSE;
@@ -249,6 +277,9 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 		croak("Can't bind ``lvalue'' mode.");
 
 	if (!imp_sth)
+		return FALSE;
+
+	if (!imp_sth->pstmt)
 		return FALSE;
 
 	char * value_str = SvPV(value, value_len);
