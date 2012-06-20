@@ -52,6 +52,8 @@ using namespace std;
 #include "ext/standard/info.h"
 #include "php_nuodb.h"
 
+using namespace NuoDB;
+
 #ifdef ZEND_ENGINE_2
 #include "zend_exceptions.h"
 #endif
@@ -255,9 +257,10 @@ static void nuodb_add_result(nuodb_connection_t *nc, nuodb_result_t *r)
 
 static void nuodb_free_connection(nuodb_connection_t *nc)
 {
- if (NUODB_G(trace))
-   php_error(E_NOTICE, "nuodb_free_connection: connection (%p)", nc);
  TSRMLS_FETCH(); 
+ if (NUODB_G(trace))
+  php_error(E_NOTICE, "nuodb_free_connection: connection (%p)", nc);
+
  try {
   nuodb_free_results(nc);
   nc->c->close();
