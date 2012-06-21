@@ -37,45 +37,118 @@ module ActiveRecord
 
         def do_execute(sql, name = 'SQL')
           log(sql, name) do
-            @connection.execute(sql)
+            stmt = @connection.createStatement
+            stmt.execute(sql)
           end
         end
 
         def exec_query(sql, name = 'SQL', binds = [])
 
-          # Convert the binds into a simple array of values
-          cbinds = binds.map { |c|
-            c[1]
+          stmt = @connection.createPreparedStatement sql
+
+          param = 1
+          binds.each {|bind|
+            value = bind[1]
+            case value
+            when String
+              stmt.setString param, value
+            when Integer
+              stmt.setInteger param, value
+            when Fixnum
+              stmt.setInteger param, value
+            when Float
+              stmt.setDouble param, value
+            when TrueClass
+              stmt.setBoolean param, true
+            when FalseClass
+              stmt.setBoolean param, false
+            else
+              raise "don't know how to bind #{value.class} to parameter #{param}"
+            end
+            param += 1
           }
 
-          # execute the query
-          result = @connection.execute(sql, *cbinds)
+          stmt.execute
 
-          # build the result object
-          obj = ActiveRecord::Result.new(result.column_names, result.to_a)
-          def obj.generated_key=(generated_key)
-            @generated_key = generated_key
-          end
-          def obj.generated_key
-            @generated_key
-          end
-          keys = result.handle.generated_keys;
-          if keys
-            obj.generated_key = keys[0]
-          end
+          genkeys = stmt.getGeneratedKeys
+          @last_inserted_id = genkeys ? next_row(genkeys)[0] : nil
 
-          obj
+          result = stmt.getResultSet
+
+          if result
+            names = column_names result
+            rows = all_rows result
+            ActiveRecord::Result.new(names, rows)
+          else 
+            nil
+          end
 
         end
 
         def last_inserted_id(result)
-          result.generated_key
+          @last_inserted_id
         end
 
         protected
 
         def select(sql, name = nil, binds = [])
           exec_query(sql, name, binds).to_a
+        end
+
+        private
+
+        def column_names result
+          return [] if result.nil?
+          names = []
+          meta = result.getMetaData
+          count = meta.getColumnCount
+          for i in 1..count
+            names << meta.getColumnName(i).downcase
+          end
+          names
+        end
+
+        def all_rows(result)
+          rows = []
+          while (row = next_row(result)) != nil
+            rows << row
+          end
+          rows
+        end
+
+        def next_row(result)
+          return nil if result.nil?
+          if result.next
+            meta = result.getMetaData
+            count = meta.getColumnCount
+            row = []
+            for i in 1..count
+              type = meta.getType(i)
+              case type
+              when :SQL_INTEGER
+                row << result.getInteger(i)
+              when :SQL_DOUBLE
+                row << result.getDouble(i)
+              when :SQL_STRING
+                row << result.getString(i)
+              when :SQL_DATE
+                row << result.getDate(i)
+              when :SQL_TIME
+                row << result.getTime(i)
+              when :SQL_TIMESTAMP
+                row << result.getTimestamp(i)
+              when :SQL_CHAR
+                row << result.getChar(i)
+              when :SQL_BOOLEAN
+                row << result.getBoolean(i)
+              else
+                raise "unknown type #{type} for column #{i}"
+              end
+            end
+            row
+          else
+            nil
+          end
         end
 
       end

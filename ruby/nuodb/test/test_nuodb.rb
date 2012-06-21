@@ -60,7 +60,8 @@ class TC_Nuodb < Test::Unit::TestCase
     con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
     stmt = con.createStatement
     assert_not_nil stmt
-    stmt.execute "select 1 from dual"
+    have_result = stmt.execute "select 1 from dual"
+    assert_equal false, have_result # TODO should be true
   end
 
   def test_get_schema()
@@ -87,8 +88,10 @@ class TC_Nuodb < Test::Unit::TestCase
     con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
     stmt = con.createStatement
     assert_not_nil stmt
-    stmt.execute "drop table test_nuodb if exists"
-    stmt.execute <<EOS
+    have_result = stmt.execute "drop table test_nuodb if exists"
+    assert_equal false, have_result
+    assert_nil stmt.getResultSet
+    have_result = stmt.execute <<EOS
 create table test_nuodb (
   i integer,
   d double,
@@ -97,9 +100,19 @@ create table test_nuodb (
   x integer generated always,
   primary key (i))
 EOS
+    assert_equal false, have_result
+    assert_nil stmt.getResultSet
 
     stmt = con.createStatement
     assert_not_nil stmt
+
+    have_result = stmt.execute "select * from test_nuodb"
+    assert_equal false, have_result # TODO should be true
+    assert_equal(-1, stmt.getUpdateCount)
+    assert_nil stmt.getGeneratedKeys
+    result = stmt.getResultSet
+    assert_not_nil result
+    assert_equal false, result.next
 
     result = stmt.executeQuery "select * from test_nuodb"
     assert_equal(-1, stmt.getUpdateCount)
@@ -126,7 +139,9 @@ EOS
     assert_equal "X", meta.getColumnName(5)
     assert_equal :SQL_INTEGER, meta.getType(5)
 
-    stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
+    have_result = stmt.execute "insert into test_nuodb(i,d,s,b) values(10,1.1,'one',true)"
+    assert_equal false, have_result
+    assert_nil stmt.getResultSet
     assert_equal 1, stmt.getUpdateCount
     k = stmt.getGeneratedKeys
     assert_not_nil k
@@ -134,11 +149,15 @@ EOS
     assert k.getInteger(1) > 0
     assert_equal false, k.next
 
-    stmt.execute "update test_nuodb set s='update' where i=999"
+    have_result = stmt.execute "update test_nuodb set s='update' where i=999"
+    assert_equal false, have_result
+    assert_nil stmt.getResultSet
     assert_equal(-1, stmt.getUpdateCount)
     assert_nil stmt.getGeneratedKeys
 
-    stmt.execute "update test_nuodb set s='update' where i=10"
+    have_result = stmt.execute "update test_nuodb set s='update' where i=10"
+    assert_equal false, have_result
+    assert_nil stmt.getResultSet
     assert_equal 1, stmt.getUpdateCount
     assert_nil stmt.getGeneratedKeys
 
@@ -148,8 +167,7 @@ EOS
     assert_equal 10, r.getInteger(1)
     assert_equal 1.1, r.getDouble(2)
     assert_equal 'update', r.getString(3)
-    # TODO: ResultSet::getBoolean SEGV
-    #assert_equal true, r.getBoolean(4)
+    assert_equal true, r.getBoolean(4)
 
     assert_equal false, r.next
 

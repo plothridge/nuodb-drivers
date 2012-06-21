@@ -111,9 +111,9 @@ static VALUE wrap(RT* value)											\
 
 using namespace NuoDB;
 
-class SqlDatabaseMetaData
+class WrapDatabaseMetaData
 {
-	WRAPPER_COMMON(SqlDatabaseMetaData, DatabaseMetaData)
+	WRAPPER_COMMON(WrapDatabaseMetaData, DatabaseMetaData)
 
 	static void init(VALUE module);
 	static VALUE getDatabaseVersion(VALUE self);
@@ -122,13 +122,13 @@ class SqlDatabaseMetaData
 	static VALUE getTables(VALUE self, VALUE schemaValue, VALUE table);
 };
 
-WRAPPER_DEFINITION(SqlDatabaseMetaData);
+WRAPPER_DEFINITION(WrapDatabaseMetaData);
 
 //------------------------------------------------------------------------------
 
-class SqlResultSetMetaData
+class WrapResultSetMetaData
 {
-	WRAPPER_COMMON(SqlResultSetMetaData, ResultSetMetaData);
+	WRAPPER_COMMON(WrapResultSetMetaData, ResultSetMetaData);
 
 	static void init(VALUE module);
 	static VALUE getColumnCount(VALUE self);
@@ -140,14 +140,14 @@ class SqlResultSetMetaData
 	static VALUE getType(VALUE self, VALUE columnValue);
 };
 
-WRAPPER_DEFINITION(SqlResultSetMetaData);
+WRAPPER_DEFINITION(WrapResultSetMetaData);
 
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-class SqlResultSet
+class WrapResultSet
 {
-	WRAPPER_COMMON(SqlResultSet, ResultSet)
+	WRAPPER_COMMON(WrapResultSet, ResultSet)
 
 	static void init(VALUE module);
 	static VALUE next(VALUE self);
@@ -163,29 +163,30 @@ class SqlResultSet
 	static VALUE getChar(VALUE self, VALUE columnValue);
 };
 
-WRAPPER_DEFINITION(SqlResultSet)
+WRAPPER_DEFINITION(WrapResultSet)
 
 //------------------------------------------------------------------------------
 
-class SqlStatement
+class WrapStatement
 {
-	WRAPPER_COMMON(SqlStatement, Statement);
+	WRAPPER_COMMON(WrapStatement, Statement);
 
 	static void init(VALUE module);
 	static VALUE execute(VALUE self, VALUE sqlValue);
 	static VALUE executeQuery(VALUE self, VALUE sqlValue);
 	static VALUE executeUpdate(VALUE self, VALUE sqlValue);
+	static VALUE getResultSet(VALUE self);
 	static VALUE getUpdateCount(VALUE self);
 	static VALUE getGeneratedKeys(VALUE self);
 };
 
-WRAPPER_DEFINITION(SqlStatement);
+WRAPPER_DEFINITION(WrapStatement);
 
 //------------------------------------------------------------------------------
 
-class SqlPreparedStatement
+class WrapPreparedStatement
 {
-	WRAPPER_COMMON(SqlPreparedStatement, PreparedStatement);
+	WRAPPER_COMMON(WrapPreparedStatement, PreparedStatement);
 
 	static void init(VALUE module);
 	static VALUE setBoolean(VALUE self, VALUE indexValue, VALUE valueValue);
@@ -195,19 +196,21 @@ class SqlPreparedStatement
 	static VALUE execute(VALUE self);
 	static VALUE executeQuery(VALUE self);
 	static VALUE executeUpdate(VALUE self);
+	static VALUE getResultSet(VALUE self);
 	static VALUE getUpdateCount(VALUE self);
 	static VALUE getGeneratedKeys(VALUE self);
 };
 
-WRAPPER_DEFINITION(SqlPreparedStatement);
+WRAPPER_DEFINITION(WrapPreparedStatement);
 
 //------------------------------------------------------------------------------
 
-class SqlConnection
+class WrapConnection
 {
-	WRAPPER_COMMON(SqlConnection, Connection);
+	WRAPPER_COMMON(WrapConnection, Connection);
 
 	static void init(VALUE module);
+	static VALUE close(VALUE self);
 	static VALUE ping(VALUE self);
 	static VALUE createStatement(VALUE self);
 	static VALUE createPreparedStatement(VALUE self, VALUE sqlValue);
@@ -224,9 +227,9 @@ class SqlConnection
 									 VALUE passwordValue);
 };
 
-WRAPPER_DEFINITION(SqlConnection);
+WRAPPER_DEFINITION(WrapConnection);
 
-void SqlDatabaseMetaData::init(VALUE module)
+void WrapDatabaseMetaData::init(VALUE module)
 {
 	INIT_TYPE("DatabaseMetaData");
 	DEFINE_METHOD(getDatabaseVersion, 0);
@@ -235,7 +238,7 @@ void SqlDatabaseMetaData::init(VALUE module)
 	DEFINE_METHOD(getTables, 2);
 }
 
-VALUE SqlDatabaseMetaData::getDatabaseVersion(VALUE self)
+VALUE WrapDatabaseMetaData::getDatabaseVersion(VALUE self)
 {
 	try 
 		{
@@ -247,7 +250,7 @@ VALUE SqlDatabaseMetaData::getDatabaseVersion(VALUE self)
 		}
 }
 
-VALUE SqlDatabaseMetaData::getIndexInfo(VALUE self, VALUE schemaValue, VALUE tableValue, VALUE uniqueValue, VALUE approxValue)
+VALUE WrapDatabaseMetaData::getIndexInfo(VALUE self, VALUE schemaValue, VALUE tableValue, VALUE uniqueValue, VALUE approxValue)
 {
 	const char* schema = StringValuePtr(schemaValue);
 	const char* table = StringValuePtr(tableValue);
@@ -257,7 +260,7 @@ VALUE SqlDatabaseMetaData::getIndexInfo(VALUE self, VALUE schemaValue, VALUE tab
 					RB_TYPE_P(approxValue, T_NIL));
 	try 
 		{
-		return SqlResultSet::wrap(asPtr(self)->getIndexInfo(NULL, schema, table, unique, approx));
+		return WrapResultSet::wrap(asPtr(self)->getIndexInfo(NULL, schema, table, unique, approx));
 		} 
 	catch (SQLException & e) 
 		{
@@ -265,13 +268,13 @@ VALUE SqlDatabaseMetaData::getIndexInfo(VALUE self, VALUE schemaValue, VALUE tab
 		}
 }
 
-VALUE SqlDatabaseMetaData::getColumns(VALUE self, VALUE schemaValue, VALUE tableValue)
+VALUE WrapDatabaseMetaData::getColumns(VALUE self, VALUE schemaValue, VALUE tableValue)
 {
 	const char* schema = StringValuePtr(schemaValue);
 	const char* table = StringValuePtr(tableValue);
 	try 
 		{
-		return SqlResultSet::wrap(asPtr(self)->getColumns(NULL, schema, table, NULL));
+		return WrapResultSet::wrap(asPtr(self)->getColumns(NULL, schema, table, NULL));
 		} 
 	catch (SQLException & e) 
 		{
@@ -279,14 +282,14 @@ VALUE SqlDatabaseMetaData::getColumns(VALUE self, VALUE schemaValue, VALUE table
 		}
 }
 
-VALUE SqlDatabaseMetaData::getTables(VALUE self, VALUE schemaValue, VALUE tableValue)
+VALUE WrapDatabaseMetaData::getTables(VALUE self, VALUE schemaValue, VALUE tableValue)
 {
 	const char* schema = StringValuePtr(schemaValue);
 	const char* table = StringValuePtr(tableValue);
 
 	try 
 		{
-		return SqlResultSet::wrap(asPtr(self)->getTables(NULL, schema, table, 0, NULL));
+		return WrapResultSet::wrap(asPtr(self)->getTables(NULL, schema, table, 0, NULL));
 		} 
 	catch (SQLException & e) 
 		{
@@ -294,7 +297,7 @@ VALUE SqlDatabaseMetaData::getTables(VALUE self, VALUE schemaValue, VALUE tableV
 		}
 }
 
-void SqlResultSet::init(VALUE module)
+void WrapResultSet::init(VALUE module)
 {
 	INIT_TYPE("ResultSet");
 	DEFINE_METHOD(next, 0);
@@ -309,7 +312,7 @@ void SqlResultSet::init(VALUE module)
 	DEFINE_METHOD(getChar, 1);
 }
 
-VALUE SqlResultSet::next(VALUE self)
+VALUE WrapResultSet::next(VALUE self)
 {
 	try 
 		{
@@ -321,11 +324,11 @@ VALUE SqlResultSet::next(VALUE self)
 		}
 }
 
-VALUE SqlResultSet::getMetaData(VALUE self)
+VALUE WrapResultSet::getMetaData(VALUE self)
 {
 	try 
 		{
-		return SqlResultSetMetaData::wrap(asPtr(self)->getMetaData());
+		return WrapResultSetMetaData::wrap(asPtr(self)->getMetaData());
 		} 
 	catch (SQLException & e) 
 		{
@@ -333,7 +336,7 @@ VALUE SqlResultSet::getMetaData(VALUE self)
 		}
 }
 
-VALUE SqlResultSet::getBoolean(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getBoolean(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try {
@@ -344,7 +347,7 @@ VALUE SqlResultSet::getBoolean(VALUE self, VALUE columnValue)
 	}
 }
 
-VALUE SqlResultSet::getInteger(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getInteger(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -357,7 +360,7 @@ VALUE SqlResultSet::getInteger(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSet::getDouble(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getDouble(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try {
@@ -367,7 +370,7 @@ VALUE SqlResultSet::getDouble(VALUE self, VALUE columnValue)
 	}
 }
 
-VALUE SqlResultSet::getString(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getString(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try {
@@ -376,7 +379,7 @@ VALUE SqlResultSet::getString(VALUE self, VALUE columnValue)
 	rb_raise(rb_eRuntimeError, "getString(%d) failed: %s", column, e.getText());
 	}
 }
-VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getDate(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -396,7 +399,7 @@ VALUE SqlResultSet::getDate(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSet::getTime(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getTime(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -419,7 +422,7 @@ VALUE SqlResultSet::getTime(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSet::getTimestamp(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getTimestamp(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -439,7 +442,7 @@ VALUE SqlResultSet::getTimestamp(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSet::getChar(VALUE self, VALUE columnValue)
+VALUE WrapResultSet::getChar(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -454,7 +457,7 @@ VALUE SqlResultSet::getChar(VALUE self, VALUE columnValue)
 
 //------------------------------------------------------------------------------
 
-void SqlResultSetMetaData::init(VALUE module)
+void WrapResultSetMetaData::init(VALUE module)
 {
 	INIT_TYPE("ResultMetaData");
 	DEFINE_METHOD(getColumnCount, 0);
@@ -466,7 +469,7 @@ void SqlResultSetMetaData::init(VALUE module)
 	DEFINE_METHOD(isNullable, 1);
 }
 
-VALUE SqlResultSetMetaData::getColumnCount(VALUE self)
+VALUE WrapResultSetMetaData::getColumnCount(VALUE self)
 {
 	try 
 		{
@@ -478,7 +481,7 @@ VALUE SqlResultSetMetaData::getColumnCount(VALUE self)
 		}
 }
 
-VALUE SqlResultSetMetaData::getColumnName(VALUE self, VALUE columnValue)
+VALUE WrapResultSetMetaData::getColumnName(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -491,7 +494,7 @@ VALUE SqlResultSetMetaData::getColumnName(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSetMetaData::getScale(VALUE self, VALUE columnValue)
+VALUE WrapResultSetMetaData::getScale(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try
@@ -504,7 +507,7 @@ VALUE SqlResultSetMetaData::getScale(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSetMetaData::getPrecision(VALUE self, VALUE columnValue)
+VALUE WrapResultSetMetaData::getPrecision(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try
@@ -517,7 +520,7 @@ VALUE SqlResultSetMetaData::getPrecision(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSetMetaData::isNullable(VALUE self, VALUE columnValue)
+VALUE WrapResultSetMetaData::isNullable(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try
@@ -530,7 +533,7 @@ VALUE SqlResultSetMetaData::isNullable(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSetMetaData::getColumnTypeName(VALUE self, VALUE columnValue)
+VALUE WrapResultSetMetaData::getColumnTypeName(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	try 
@@ -543,7 +546,7 @@ VALUE SqlResultSetMetaData::getColumnTypeName(VALUE self, VALUE columnValue)
 		}
 }
 
-VALUE SqlResultSetMetaData::getType(VALUE self, VALUE columnValue)
+VALUE WrapResultSetMetaData::getType(VALUE self, VALUE columnValue)
 {
 	int column = NUM2UINT(columnValue);
 	SqlType t = (SqlType)asPtr(self)->getColumnType(column);
@@ -599,36 +602,36 @@ VALUE SqlResultSetMetaData::getType(VALUE self, VALUE columnValue)
 
 //------------------------------------------------------------------------------
 
-void SqlStatement::init(VALUE module)
+void WrapStatement::init(VALUE module)
 {
 	INIT_TYPE("Statement");
 	DEFINE_METHOD(execute, 1);
 	DEFINE_METHOD(executeQuery, 1);
 	DEFINE_METHOD(executeUpdate, 1);
+	DEFINE_METHOD(getResultSet, 0);
 	DEFINE_METHOD(getUpdateCount, 0);
 	DEFINE_METHOD(getGeneratedKeys, 0);
 }
 
-VALUE SqlStatement::execute(VALUE self, VALUE sqlValue)
+VALUE WrapStatement::execute(VALUE self, VALUE sqlValue)
 {
 	const char* sql = StringValuePtr(sqlValue);
 	try 
 		{
-		asPtr(self)->execute(sql, NuoDB::RETURN_GENERATED_KEYS );
+		return AS_QBOOL(asPtr(self)->execute(sql, NuoDB::RETURN_GENERATED_KEYS ));
 		} 
 	catch (SQLException & e) 
 		{
 		rb_raise(rb_eRuntimeError, "execute(\"%s\") failed: %s", sql, e.getText());
 		}
-	return Qnil;
 }
 
-VALUE SqlStatement::executeQuery(VALUE self, VALUE sqlValue)
+VALUE WrapStatement::executeQuery(VALUE self, VALUE sqlValue)
 {
 	const char* sql = StringValuePtr(sqlValue);
 	try 
 		{
-		return SqlResultSet::wrap(asPtr(self)->executeQuery(sql));
+		return WrapResultSet::wrap(asPtr(self)->executeQuery(sql));
 		} 
 	catch (SQLException & e) 
 		{
@@ -636,7 +639,7 @@ VALUE SqlStatement::executeQuery(VALUE self, VALUE sqlValue)
 		}
 }
 
-VALUE SqlStatement::executeUpdate(VALUE self, VALUE sqlValue)
+VALUE WrapStatement::executeUpdate(VALUE self, VALUE sqlValue)
 {
 	const char* sql = StringValuePtr(sqlValue);
 	try 
@@ -649,7 +652,16 @@ VALUE SqlStatement::executeUpdate(VALUE self, VALUE sqlValue)
 		}
 }
 
-VALUE SqlStatement::getUpdateCount(VALUE self)
+VALUE WrapStatement::getResultSet(VALUE self)
+{
+	try {
+	return WrapResultSet::wrap(asPtr(self)->getResultSet());
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getResultSet() failed: %s", e.getText());
+	}
+}
+
+VALUE WrapStatement::getUpdateCount(VALUE self)
 {
 	try {
 	return INT2NUM(asPtr(self)->getUpdateCount());
@@ -658,10 +670,10 @@ VALUE SqlStatement::getUpdateCount(VALUE self)
 	}
 }
 
-VALUE SqlStatement::getGeneratedKeys(VALUE self)
+VALUE WrapStatement::getGeneratedKeys(VALUE self)
 {
 	try {
-	return SqlResultSet::wrap(asPtr(self)->getGeneratedKeys());
+	return WrapResultSet::wrap(asPtr(self)->getGeneratedKeys());
 	} catch (SQLException & e) {
 	rb_raise(rb_eRuntimeError, "getGeneratedKeys() failed: %s", e.getText());
 	}
@@ -669,7 +681,7 @@ VALUE SqlStatement::getGeneratedKeys(VALUE self)
 
 //------------------------------------------------------------------------------
 
-void SqlPreparedStatement::init(VALUE module)
+void WrapPreparedStatement::init(VALUE module)
 {
 	INIT_TYPE("PreparedStatement");
 	DEFINE_METHOD(setBoolean, 2);
@@ -679,11 +691,12 @@ void SqlPreparedStatement::init(VALUE module)
 	DEFINE_METHOD(execute, 0);
 	DEFINE_METHOD(executeQuery, 0);
 	DEFINE_METHOD(executeUpdate, 0);
+	DEFINE_METHOD(getResultSet, 0);
 	DEFINE_METHOD(getUpdateCount, 0);
 	DEFINE_METHOD(getGeneratedKeys, 0);
 }
 
-VALUE SqlPreparedStatement::setBoolean(VALUE self, VALUE indexValue, VALUE valueValue)
+VALUE WrapPreparedStatement::setBoolean(VALUE self, VALUE indexValue, VALUE valueValue)
 {
 	int32_t index = NUM2UINT(indexValue);
 	bool value = valueValue ? true : false;
@@ -696,7 +709,7 @@ VALUE SqlPreparedStatement::setBoolean(VALUE self, VALUE indexValue, VALUE value
 	}
 }
 
-VALUE SqlPreparedStatement::setInteger(VALUE self, VALUE indexValue, VALUE valueValue)
+VALUE WrapPreparedStatement::setInteger(VALUE self, VALUE indexValue, VALUE valueValue)
 {
 	int32_t index = NUM2UINT(indexValue);
 	int32_t value = NUM2INT(valueValue);
@@ -711,7 +724,7 @@ VALUE SqlPreparedStatement::setInteger(VALUE self, VALUE indexValue, VALUE value
 		}
 }
 
-VALUE SqlPreparedStatement::setDouble(VALUE self, VALUE indexValue, VALUE valueValue)
+VALUE WrapPreparedStatement::setDouble(VALUE self, VALUE indexValue, VALUE valueValue)
 {
 	int32_t index = NUM2UINT(indexValue);
 	double value = NUM2DBL(valueValue);
@@ -726,7 +739,7 @@ VALUE SqlPreparedStatement::setDouble(VALUE self, VALUE indexValue, VALUE valueV
 		}
 }
 
-VALUE SqlPreparedStatement::setString(VALUE self, VALUE indexValue, VALUE valueValue)
+VALUE WrapPreparedStatement::setString(VALUE self, VALUE indexValue, VALUE valueValue)
 {
 	int32_t index = NUM2UINT(indexValue);
 	char const* value = RSTRING_PTR(valueValue);
@@ -741,12 +754,11 @@ VALUE SqlPreparedStatement::setString(VALUE self, VALUE indexValue, VALUE valueV
 		}
 }
 
-VALUE SqlPreparedStatement::execute(VALUE self)
+VALUE WrapPreparedStatement::execute(VALUE self)
 {
 	try 
 		{
-		asPtr(self)->execute();
-		return Qnil;
+		return AS_QBOOL(asPtr(self)->execute());
 		} 
 	catch (SQLException & e) 
 		{
@@ -754,11 +766,11 @@ VALUE SqlPreparedStatement::execute(VALUE self)
 		}
 }
 
-VALUE SqlPreparedStatement::executeQuery(VALUE self)
+VALUE WrapPreparedStatement::executeQuery(VALUE self)
 {
 	try 
 		{
-		return SqlResultSet::wrap(asPtr(self)->executeQuery());
+		return WrapResultSet::wrap(asPtr(self)->executeQuery());
 		} 
 	catch (SQLException & e) 
 		{
@@ -766,7 +778,7 @@ VALUE SqlPreparedStatement::executeQuery(VALUE self)
 		}
 }
 
-VALUE SqlPreparedStatement::executeUpdate(VALUE self)
+VALUE WrapPreparedStatement::executeUpdate(VALUE self)
 {
 	try 
 		{
@@ -778,7 +790,16 @@ VALUE SqlPreparedStatement::executeUpdate(VALUE self)
 		}
 }
 
-VALUE SqlPreparedStatement::getUpdateCount(VALUE self)
+VALUE WrapPreparedStatement::getResultSet(VALUE self)
+{
+	try {
+	return WrapResultSet::wrap(asPtr(self)->getResultSet());
+	} catch (SQLException & e) {
+	rb_raise(rb_eRuntimeError, "getResultSet() failed: %s", e.getText());
+	}
+}
+
+VALUE WrapPreparedStatement::getUpdateCount(VALUE self)
 {
 	try {
 	return INT2NUM(asPtr(self)->getUpdateCount());
@@ -787,10 +808,10 @@ VALUE SqlPreparedStatement::getUpdateCount(VALUE self)
 	}
 }
 
-VALUE SqlPreparedStatement::getGeneratedKeys(VALUE self)
+VALUE WrapPreparedStatement::getGeneratedKeys(VALUE self)
 {
 	try {
-	return SqlResultSet::wrap(asPtr(self)->getGeneratedKeys());
+	return WrapResultSet::wrap(asPtr(self)->getGeneratedKeys());
 	} catch (SQLException & e) {
 	rb_raise(rb_eRuntimeError, "getGeneratedKeys() failed: %s", e.getText());
 	}
@@ -798,7 +819,7 @@ VALUE SqlPreparedStatement::getGeneratedKeys(VALUE self)
 
 //------------------------------------------------------------------------------
 
-void SqlConnection::init(VALUE module)
+void WrapConnection::init(VALUE module)
 {
 	INIT_TYPE("Connection");
 	DEFINE_SINGLE(createSqlConnection, 4);
@@ -809,11 +830,12 @@ void SqlConnection::init(VALUE module)
 	DEFINE_METHOD(commit, 0);
 	DEFINE_METHOD(rollback, 0);
 	DEFINE_METHOD(getMetaData, 0);
+	DEFINE_METHOD(close, 0);
 	DEFINE_METHOD(ping, 0);
 	DEFINE_METHOD(getSchema, 0);
 }
 
-VALUE SqlConnection::getSchema(VALUE self)
+VALUE WrapConnection::getSchema(VALUE self)
 {
 	try 
 		{
@@ -825,7 +847,20 @@ VALUE SqlConnection::getSchema(VALUE self)
 		}
 }
 
-VALUE SqlConnection::ping(VALUE self)
+VALUE WrapConnection::close(VALUE self)
+{
+	try 
+		{
+		asPtr(self)->close();
+		return Qnil;
+		} 
+	catch (SQLException & e) 
+		{
+		rb_raise(rb_eRuntimeError, "close() failed: %s", e.getText());
+		}
+}
+
+VALUE WrapConnection::ping(VALUE self)
 {
 	try 
 		{
@@ -838,11 +873,11 @@ VALUE SqlConnection::ping(VALUE self)
 		}
 }
 
-VALUE SqlConnection::createStatement(VALUE self)
+VALUE WrapConnection::createStatement(VALUE self)
 {
 	try 
 		{
-		return SqlStatement::wrap(asPtr(self)->createStatement());
+		return WrapStatement::wrap(asPtr(self)->createStatement());
 		} 
 	catch (SQLException & e) 
 		{
@@ -850,12 +885,12 @@ VALUE SqlConnection::createStatement(VALUE self)
 		}
 }
 
-VALUE SqlConnection::createPreparedStatement(VALUE self, VALUE sqlValue)
+VALUE WrapConnection::createPreparedStatement(VALUE self, VALUE sqlValue)
 {
 	const char* sql = StringValuePtr(sqlValue);
 	try 
 		{
-		return SqlPreparedStatement::wrap( asPtr(self)->prepareStatement(sql, NuoDB::RETURN_GENERATED_KEYS));
+		return WrapPreparedStatement::wrap( asPtr(self)->prepareStatement(sql, NuoDB::RETURN_GENERATED_KEYS));
 		} 
 	catch (SQLException & e) 
 		{
@@ -863,7 +898,7 @@ VALUE SqlConnection::createPreparedStatement(VALUE self, VALUE sqlValue)
 		}
 }
 
-VALUE SqlConnection::setAutoCommit(VALUE self, VALUE autoCommitValue)
+VALUE WrapConnection::setAutoCommit(VALUE self, VALUE autoCommitValue)
 {
 	bool autoCommit = !(RB_TYPE_P(autoCommitValue, T_FALSE) || 
 						RB_TYPE_P(autoCommitValue, T_NIL));
@@ -878,7 +913,7 @@ VALUE SqlConnection::setAutoCommit(VALUE self, VALUE autoCommitValue)
 		}
 }
 
-VALUE SqlConnection::hasAutoCommit(VALUE self)
+VALUE WrapConnection::hasAutoCommit(VALUE self)
 {
 	try 
 		{
@@ -890,7 +925,7 @@ VALUE SqlConnection::hasAutoCommit(VALUE self)
 		}
 }
 
-VALUE SqlConnection::commit(VALUE self)
+VALUE WrapConnection::commit(VALUE self)
 {
 	try 
 		{
@@ -903,7 +938,7 @@ VALUE SqlConnection::commit(VALUE self)
 		}
 }
 
-VALUE SqlConnection::rollback(VALUE self)
+VALUE WrapConnection::rollback(VALUE self)
 {
 	try 
 		{
@@ -916,11 +951,11 @@ VALUE SqlConnection::rollback(VALUE self)
 		}
 }
 
-VALUE SqlConnection::getMetaData(VALUE self)
+VALUE WrapConnection::getMetaData(VALUE self)
 {
 	try 
 		{
-		return SqlDatabaseMetaData::wrap( asPtr(self)->getMetaData());
+		return WrapDatabaseMetaData::wrap( asPtr(self)->getMetaData());
 		} 
 	catch (SQLException & e) 
 		{
@@ -928,7 +963,7 @@ VALUE SqlConnection::getMetaData(VALUE self)
 		}
 }
 
-VALUE SqlConnection::createSqlConnection(VALUE self,
+VALUE WrapConnection::createSqlConnection(VALUE self,
 										 VALUE databaseValue, 
 										 VALUE schemaValue,
 										 VALUE usernameValue, 
@@ -941,7 +976,7 @@ VALUE SqlConnection::createSqlConnection(VALUE self,
 		   
 	try 
 		{
-		return SqlConnection::wrap( getDatabaseConnection(database, 
+		return WrapConnection::wrap( getDatabaseConnection(database, 
 														  username, 
 														  password, 
 														  1, 
@@ -965,12 +1000,12 @@ extern "C"
 void Init_nuodb(void)
 {
 	VALUE module = rb_define_module("Nuodb");
-	SqlConnection::init(module);
-	SqlDatabaseMetaData::init(module);
-	SqlStatement::init(module);
-	SqlPreparedStatement::init(module);
-	SqlResultSet::init(module);
-	SqlResultSetMetaData::init(module);
+	WrapConnection::init(module);
+	WrapDatabaseMetaData::init(module);
+	WrapStatement::init(module);
+	WrapPreparedStatement::init(module);
+	WrapResultSet::init(module);
+	WrapResultSetMetaData::init(module);
 }
 
 //------------------------------------------------------------------------------

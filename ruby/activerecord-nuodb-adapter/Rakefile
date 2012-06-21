@@ -47,7 +47,7 @@ HOE = Hoe.spec 'activerecord-nuodb-adapter' do
 
   spec_extras[:required_ruby_version] = Gem::Requirement.new('>= 1.8.6')
 
-  extra_deps << ['dbd-nuodb', '~> 1.0.0']
+  extra_deps << ['nuodb', '~> 1.0.0']
 end
 
 file "#{HOE.spec.name}.gemspec" => ['Rakefile', 'tasks/gem.rake'] do |t|
