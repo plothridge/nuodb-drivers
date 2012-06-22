@@ -14,3 +14,4 @@ t/05-bind.t
 t/06-utf8.t
 t/07-disconnect.t
 t/08-generatedkeys.t
+t/09-analyze.t

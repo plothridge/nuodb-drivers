@@ -170,6 +170,19 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth)
 	return TRUE;
 }
 
+const char * dbd_st_analyze(SV *sth)
+{
+	D_imp_sth(sth);
+
+	if (!imp_sth->pstmt) {
+		do_error(sth, -1, "Statement was not prepared.");
+		return NULL;
+	}
+
+	// 2 = RemPreparedStatement::AnalyzeTree but RemPreparedStatement.h depends on Platform/LinkedList.h , so can not be included
+	return imp_sth->pstmt->analyze(2);
+}
+
 int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
 	

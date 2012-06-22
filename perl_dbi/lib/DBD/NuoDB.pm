@@ -25,6 +25,8 @@ sub driver {
 		'Version'	=> $VERSION,
 		'Attribution'	=> 'Perl DBI DBD NuoDB driver by Philip Stoev <pstoev@nuodb.com>',
 	});
+
+	DBD::NuoDB::st->install_method('x_analyze');
 	
 	return $drh;
 }

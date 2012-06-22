@@ -31,3 +31,5 @@ struct imp_sth_st {
 #define dbd_db_disconnect	nuodb_db_disconnect
 
 void do_error (SV *h, int rc, char *what);
+
+const char * dbd_st_analyze(SV *sth);
