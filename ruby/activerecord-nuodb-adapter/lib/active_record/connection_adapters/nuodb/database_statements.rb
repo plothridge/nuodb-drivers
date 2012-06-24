@@ -62,6 +62,8 @@ module ActiveRecord
               stmt.setBoolean param, true
             when FalseClass
               stmt.setBoolean param, false
+            when Time
+              stmt.setTime param, value
             else
               raise "don't know how to bind #{value.class} to parameter #{param}"
             end
@@ -71,7 +73,8 @@ module ActiveRecord
           stmt.execute
 
           genkeys = stmt.getGeneratedKeys
-          @last_inserted_id = genkeys ? next_row(genkeys)[0] : nil
+	  row = genkeys ? next_row(genkeys) : nil
+	  @last_inserted_id = row ? row[0] : nil
 
           result = stmt.getResultSet
 
@@ -93,6 +96,12 @@ module ActiveRecord
 
         def select(sql, name = nil, binds = [])
           exec_query(sql, name, binds).to_a
+        end
+
+        protected
+
+        def select_rows(sql, name = nil)
+          rows = exec_query(sql, name).rows
         end
 
         private

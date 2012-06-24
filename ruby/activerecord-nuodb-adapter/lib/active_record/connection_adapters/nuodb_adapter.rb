@@ -304,7 +304,7 @@ module ActiveRecord
         {
           :primary_key  => 'int not null generated always primary key',
           :string       => { :name => 'varchar', :limit => 255  },
-          :text         => { :name => 'varchar' },
+          :text         => { :name => 'varchar', :limit => 255  },
           :integer      => { :name => 'integer' },
           :float        => { :name => 'float', :limit => 8 },
           :decimal      => { :name => 'decimal' },
@@ -319,7 +319,7 @@ module ActiveRecord
           :nchar        => { :name => 'nchar' },
           :nvarchar     => { :name => 'nvarchar', :limit => 255 },
           :nvarchar_max => { :name => 'nvarchar(max)' },
-          :ntext        => { :name => 'ntext' },
+          :ntext        => { :name => 'ntext', :limit => 255 },
           :ss_timestamp => { :name => 'timestamp' }
         }
       end
@@ -339,6 +339,12 @@ module ActiveRecord
           raise "Invalid table name: #{table}"
         end
         [schema_name, table_name]
+      end
+
+      public
+
+      def quote_column_name(name) #:nodoc:
+        name.to_s
       end
 
     end #class NuoDBAdapter < AbstractAdapter

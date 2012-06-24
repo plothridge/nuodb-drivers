@@ -36,6 +36,7 @@
 #endif
 
 #include <ruby.h>
+#include <time.h>
 
 //------------------------------------------------------------------------------
 // class building macros
@@ -193,6 +194,7 @@ class WrapPreparedStatement
 	static VALUE setInteger(VALUE self, VALUE indexValue, VALUE valueValue);
 	static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue);
 	static VALUE setString(VALUE self, VALUE indexValue, VALUE valueValue);
+	static VALUE setTime(VALUE self, VALUE indexValue, VALUE valueValue);
 	static VALUE execute(VALUE self);
 	static VALUE executeQuery(VALUE self);
 	static VALUE executeUpdate(VALUE self);
@@ -688,12 +690,28 @@ void WrapPreparedStatement::init(VALUE module)
 	DEFINE_METHOD(setInteger, 2);
 	DEFINE_METHOD(setDouble, 2);
 	DEFINE_METHOD(setString, 2);
+	DEFINE_METHOD(setTime, 2);
 	DEFINE_METHOD(execute, 0);
 	DEFINE_METHOD(executeQuery, 0);
 	DEFINE_METHOD(executeUpdate, 0);
 	DEFINE_METHOD(getResultSet, 0);
 	DEFINE_METHOD(getUpdateCount, 0);
 	DEFINE_METHOD(getGeneratedKeys, 0);
+}
+
+VALUE WrapPreparedStatement::setTime(VALUE self, VALUE indexValue, VALUE valueValue)
+{
+	int32_t index = NUM2UINT(indexValue);
+	struct timeval tv = rb_time_timeval(valueValue);
+	int64_t value = (tv.tv_usec / 1000) + (tv.tv_sec * 1000);
+	try 
+		{
+		asPtr(self)->setDate(index, value);
+		return Qnil;
+		} catch (SQLException & e) {
+		rb_raise(rb_eRuntimeError, "setTime(%d, %s) failed: %s",
+			 index, value, e.getText());
+		}
 }
 
 VALUE WrapPreparedStatement::setBoolean(VALUE self, VALUE indexValue, VALUE valueValue)
