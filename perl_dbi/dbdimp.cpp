@@ -180,14 +180,22 @@ const char * dbd_st_analyze(SV *sth)
 	}
 
 	// 2 = RemPreparedStatement::AnalyzeTree but RemPreparedStatement.h depends on Platform/LinkedList.h , so can not be included
-	return imp_sth->pstmt->analyze(2);
+
+        try {
+		return imp_sth->pstmt->analyze(2);
+        } catch (NuoDB::SQLException& xcp) {
+                do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
+		return NULL;
+        }
 }
 
 int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
 	
-	if (!imp_dbh->conn)
+	if (!imp_dbh->conn) {
+		do_error(dbh, -1, "Connection is not available.");
 		return FALSE;
+	}
 
 	try {
 		imp_dbh->conn->commit();
@@ -201,8 +209,10 @@ int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 
 int dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	if (!imp_dbh->conn)
+	if (!imp_dbh->conn) {
+		do_error(dbh, -1, "Connection is not available.");
 		return FALSE;
+	}
 	
 	try {
 		imp_dbh->conn->rollback();
@@ -232,10 +242,17 @@ int dbd_db_STORE_attrib(SV* dbh, imp_dbh_t* imp_dbh, SV* keysv, SV* valuesv)
 	char *key = SvPV(keysv, kl);
 	bool bool_value = SvTRUE(valuesv);
 
-	if (!imp_dbh->conn)
-		return FALSE;
-
 	if (kl==10 && strEQ(key, "AutoCommit")) {
+		if (!imp_dbh->conn) {
+			do_error(dbh, -1, "Connection is not available.");
+
+			// We need to set valuesv to -900 in order to prevent 
+			// a croak() in DBI.xs:2168
+			
+			sv_setiv(valuesv, -900);
+			return FALSE;
+		}
+
 		try {
 			imp_dbh->conn->setAutoCommit(bool_value);
 			DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
