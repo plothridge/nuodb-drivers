@@ -86,9 +86,17 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 
 int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 {
+	D_imp_dbh_from_sth;
 
-	if (!imp_sth->pstmt)
+	if (!imp_dbh->conn) {
+		do_error(sth, -1, "Connection is not available.");
 		return FALSE;
+	}
+
+	if (!imp_sth->pstmt) {
+		do_error(sth, -1, "Statement was not prepared.");
+		return FALSE;
+	}
 
 	try {
 		DBIc_ACTIVE_off(imp_sth);
@@ -117,6 +125,13 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 {
 	AV* av;
 	int i;
+
+        D_imp_dbh_from_sth;
+
+	if (!imp_dbh->conn) {
+		do_error(sth, -1, "Connection is not available.");
+		return Nullav;
+	}
 
 	NuoDB::ResultSet *rs = imp_sth->rs;
 
@@ -151,11 +166,13 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 
 void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
 {
+        D_imp_dbh_from_sth;
+
 	try {
-		if (imp_sth->rs)
+		if (imp_dbh->conn && imp_sth->rs)
 			imp_sth->rs->close();
 
-		if (imp_sth->pstmt)
+		if (imp_dbh->conn && imp_sth->pstmt)
 			imp_sth->pstmt->close();
 
 	} catch (NuoDB::SQLException& xcp) {
