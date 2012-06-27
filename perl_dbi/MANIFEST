@@ -15,3 +15,4 @@ t/06-utf8.t
 t/07-disconnect.t
 t/08-generatedkeys.t
 t/09-analyze.t
+t/10-version.t

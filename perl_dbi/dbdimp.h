@@ -33,3 +33,4 @@ struct imp_sth_st {
 void do_error (SV *h, int rc, char *what);
 
 const char * dbd_st_analyze(SV *sth);
+const char * dbd_db_version(SV *dbh);

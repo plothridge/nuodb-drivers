@@ -60,6 +60,22 @@ MODULE = DBD::NuoDB     PACKAGE = DBD::NuoDB::dr
 
 MODULE = DBD::NuoDB    PACKAGE = DBD::NuoDB::db
 
+const char *
+version(dbh)
+	SV* dbh
+CODE:
+	RETVAL = dbd_db_version(dbh);
+OUTPUT:
+	RETVAL
+
+const char *
+x_version(dbh)
+	SV* dbh
+CODE:
+	RETVAL = dbd_db_version(dbh);
+OUTPUT:
+	RETVAL
+
 MODULE = DBD::NuoDB    PACKAGE = DBD::NuoDB::st
 
 const char *

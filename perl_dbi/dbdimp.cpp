@@ -48,7 +48,7 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		imp_dbh->conn = conn;
 
 		DBIc_ACTIVE_on(imp_dbh);
-                DBIc_IMPSET_on(imp_dbh);
+		DBIc_IMPSET_on(imp_dbh);
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
 		conn->close();
@@ -181,12 +181,12 @@ const char * dbd_st_analyze(SV *sth)
 
 	// 2 = RemPreparedStatement::AnalyzeTree but RemPreparedStatement.h depends on Platform/LinkedList.h , so can not be included
 
-        try {
+	try {
 		return imp_sth->pstmt->analyze(2);
-        } catch (NuoDB::SQLException& xcp) {
-                do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
 		return NULL;
-        }
+	}
 }
 
 int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
@@ -226,10 +226,10 @@ int dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh)
 
 SV* dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
 {
-        STRLEN kl;
-        char *key = SvPV(keysv, kl);
+	STRLEN kl;
+	char *key = SvPV(keysv, kl);
 
-        if (kl==10 && strEQ(key, "AutoCommit")) {
+	if (kl==10 && strEQ(key, "AutoCommit")) {
 		return sv_2mortal(boolSV(DBIc_has(imp_dbh, DBIcf_AutoCommit)));
 	} else {
 		return Nullsv;
@@ -339,16 +339,38 @@ void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 	DBIc_IMPSET_off(imp_dbh);
 }
 
+const char * dbd_db_version(SV *dbh)
+{
+	D_imp_dbh(dbh);
+
+	if (!imp_dbh->conn) {
+		do_error(dbh, -1, "Database not connected.");
+		return NULL;
+	}
+
+	NuoDB::DatabaseMetaData *metaData = imp_dbh->conn->getMetaData();
+
+	try {
+		return metaData->getDatabaseProductVersion();
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
+		return NULL;
+	}
+
+	return NULL;
+}
+
+
 void do_error(SV* h, int rc, char* what)
 {
-        D_imp_xxh(h);
+	D_imp_xxh(h);
 
-        sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);
+	sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);
 
-        SV *errstr = DBIc_ERRSTR(imp_xxh);
+	SV *errstr = DBIc_ERRSTR(imp_xxh);
 
 	SvUTF8_on(errstr);
-        sv_setpv(errstr, what);
+	sv_setpv(errstr, what);
 	sv_utf8_decode(errstr);
 
 }
