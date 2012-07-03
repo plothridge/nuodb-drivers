@@ -703,14 +703,15 @@ VALUE WrapPreparedStatement::setTime(VALUE self, VALUE indexValue, VALUE valueVa
 {
 	int32_t index = NUM2UINT(indexValue);
 	struct timeval tv = rb_time_timeval(valueValue);
-	int64_t value = (tv.tv_usec / 1000) + (tv.tv_sec * 1000);
+
+	SqlDate d( (((int64_t)tv.tv_sec) * 1000) + (((int64_t)tv.tv_usec) / 1000) );
 	try 
 		{
-		asPtr(self)->setDate(index, value);
+		asPtr(self)->setDate(index, &d);
 		return Qnil;
 		} catch (SQLException & e) {
-		rb_raise(rb_eRuntimeError, "setTime(%d, %s) failed: %s",
-			 index, value, e.getText());
+		rb_raise(rb_eRuntimeError, "setTime(%d, %lld) failed: %s",
+			 index, d.getMilliseconds(), e.getText());
 		}
 }
 
