@@ -38,6 +38,8 @@
 #include <ruby.h>
 #include <time.h>
 
+struct timeval rb_time_timeval();
+
 //------------------------------------------------------------------------------
 // class building macros
 
