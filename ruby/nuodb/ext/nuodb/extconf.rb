@@ -30,6 +30,7 @@ require 'mkmf'
 
 if RbConfig::CONFIG['host_os'] =~ /solaris|sunos/
   have_library('stdc++')
+  $LDFLAGS << ' -m64'
 end
 
 dir_config('nuodb', '/opt/nuodb/include', '/opt/nuodb/lib64')

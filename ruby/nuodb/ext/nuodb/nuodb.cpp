@@ -38,7 +38,7 @@
 #include <ruby.h>
 #include <time.h>
 
-struct timeval rb_time_timeval(VALUE time);
+extern "C" struct timeval rb_time_timeval(VALUE time);
 
 //------------------------------------------------------------------------------
 // class building macros
