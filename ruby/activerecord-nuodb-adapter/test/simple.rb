@@ -80,7 +80,7 @@ class NuoSimpleTest < Test::Unit::TestCase
 
   def test_create_user_records
 
-    u = User.create do |u|
+    fred = User.create do |u|
       u.first_name = "Fred"
       u.last_name = "Flintstone"
       u.email = "fredf@example.com"
@@ -88,20 +88,18 @@ class NuoSimpleTest < Test::Unit::TestCase
       u.admin = true
     end
 
-    assert_not_nil u
-    assert_not_nil u.id
+    assert_not_nil fred
+    assert_not_nil fred.id
 
-    fred_id = u.id
-
-    u.create_addr do |a|
+    fred.create_addr do |a|
       a.street = "301 Cobblestone Way"
       a.city = "Bedrock"
       a.zip = "00001"
     end
 
-    assert_not_nil u.addr
+    assert_not_nil fred.addr
 
-    u = User.create do |u|
+    barney = User.create do |u|
       u.first_name = "Barney"
       u.last_name = "Rubble"
       u.email = "barney@example.com"
@@ -109,28 +107,31 @@ class NuoSimpleTest < Test::Unit::TestCase
       u.admin = false
     end
 
-    barney_id = u.id
+    assert_not_nil barney
+    assert_not_nil barney.id
 
-    u.create_addr do |a|
+    barney.create_addr do |a|
       a.street = "303 Cobblestone Way"
       a.city = "Bedrock"
       a.zip = "00001"
     end
 
-    assert_not_nil u.addr
+    assert_not_nil barney.addr
 
     assert_equal 2, User.count
+
+    assert_equal 2, Addr.count
 
     mask = 0
     User.find do |entry|
       case entry.id 
-      when fred_id
+      when fred.id
         assert_equal 'Fred', entry.first_name
         assert_equal 'Flintstone', entry.last_name
         assert_equal '301 Cobblestone Way', entry.addr.street
         mask += 1
         nil
-      when barney_id
+      when barney.id
         assert_equal 'Barney', entry.first_name
         assert_equal 'Rubble', entry.last_name
         assert_equal '303 Cobblestone Way', entry.addr.street
@@ -146,7 +147,7 @@ class NuoSimpleTest < Test::Unit::TestCase
     User.all.each do |entry|
       entry.first_name = entry.first_name.upcase
       entry.last_name = entry.last_name.upcase
-      entry.admin = !entry.admin
+      # TODO entry.admin = !entry.admin
       entry.addr.street = entry.addr.street.upcase
       entry.addr.save 
       entry.save
@@ -156,11 +157,11 @@ class NuoSimpleTest < Test::Unit::TestCase
 
     User.find do |entry|
       case entry.id 
-      when fred_id
+      when fred.id
         assert_equal 'FRED', entry.first_name
         assert_equal '301 COBBLESTONE WAY', entry.addr.street
         nil
-      when barney_id
+      when barney.id
         assert_equal 'BARNEY', entry.first_name
         assert_equal '303 COBBLESTONE WAY', entry.addr.street
         nil

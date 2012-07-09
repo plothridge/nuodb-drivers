@@ -30,6 +30,9 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 	NuoDB::Connection *conn = createConnection();
 	imp_dbh->conn = conn;
 
+	if (!conn)
+		return FALSE;
+
 	NuoDB::Properties *properties = conn->allocProperties();
 	
 	if (SvOK(uid))
@@ -43,7 +46,10 @@ int dbd_db_login6_sv(SV *dbh, imp_dbh_t *imp_dbh, SV *dbname, SV *uid, SV *pwd, 
 		
 	try {
 		conn->openDatabase(SvPV_nolen(dbname), properties);
-                DBIc_IMPSET_on(imp_dbh);
+		imp_dbh->conn = conn;
+
+		DBIc_ACTIVE_on(imp_dbh);
+		DBIc_IMPSET_on(imp_dbh);
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
 		conn->close();
@@ -57,11 +63,15 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 {
 	D_imp_dbh_from_sth;
 
-	char *sql;
-	sql = SvPV_nolen(statement);
+	if (!imp_dbh->conn) {
+		do_error(sth, -1, "Connection is not available.");
+		return FALSE;
+	}
+
+	char *sql = SvPV_nolen(statement);
 
 	try {
-		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql);
+		imp_sth->pstmt = imp_dbh->conn->prepareStatement(sql, NuoDB::RETURN_GENERATED_KEYS);
 		DBIc_IMPSET_on(imp_sth);
 
 		NuoDB::ParameterMetaData* md = imp_sth->pstmt->getParameterMetaData();
@@ -76,27 +86,33 @@ int dbd_st_prepare_sv(SV *sth, imp_sth_t *imp_sth, SV *statement, SV *attribs)
 
 int dbd_st_execute(SV* sth, imp_sth_t* imp_sth)
 {
-	SV **statement;
-	STRLEN slen;
+	D_imp_dbh_from_sth;
 
-	statement = hv_fetch((HV*) SvRV(sth), "Statement", 9, FALSE);
-	char * str_ptr = SvPV(*statement, slen);
+	if (!imp_dbh->conn) {
+		do_error(sth, -1, "Connection is not available.");
+		return FALSE;
+	}
+
+	if (!imp_sth->pstmt) {
+		do_error(sth, -1, "Statement was not prepared.");
+		return FALSE;
+	}
 
 	try {
-		if (
-			!strstr(str_ptr, "SELECT") &&
-			!strstr(str_ptr, "select")
-		) {
-			DBIc_ACTIVE_off(imp_sth);
-			imp_sth->rs = NULL;
-			return imp_sth->pstmt->execute();
+		DBIc_ACTIVE_off(imp_sth);
+		imp_sth->rs = NULL;
+
+		if (imp_sth->pstmt->execute()) {
+			imp_sth->rs = imp_sth->pstmt->getResultSet();
 		} else {
-			NuoDB::ResultSet *rs = imp_sth->pstmt->executeQuery();
-			imp_sth->rs = rs;
-	
-			NuoDB::ResultSetMetaData *md = rs->getMetaData();
-			DBIc_NUM_FIELDS(imp_sth) = md->getColumnCount();
+			imp_sth->rs = imp_sth->pstmt->getGeneratedKeys();
 		}
+			
+		if (!imp_sth->rs)
+			return FALSE;
+	
+		NuoDB::ResultSetMetaData *md = imp_sth->rs->getMetaData();
+		DBIc_NUM_FIELDS(imp_sth) = md->getColumnCount();
 	} catch (NuoDB::SQLException& xcp) {
 		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
 		return FALSE;
@@ -109,6 +125,13 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 {
 	AV* av;
 	int i;
+
+        D_imp_dbh_from_sth;
+
+	if (!imp_dbh->conn) {
+		do_error(sth, -1, "Connection is not available.");
+		return Nullav;
+	}
 
 	NuoDB::ResultSet *rs = imp_sth->rs;
 
@@ -141,12 +164,20 @@ AV* dbd_st_fetch(SV *sth, imp_sth_t* imp_sth)
 	return av;
 }
 
-void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
+void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
+{
+        D_imp_dbh_from_sth;
 
-	if (imp_sth->rs)
-		imp_sth->rs->close();
+	try {
+		if (imp_dbh->conn && imp_sth->rs)
+			imp_sth->rs->close();
 
-	imp_sth->pstmt->close();
+		if (imp_dbh->conn && imp_sth->pstmt)
+			imp_sth->pstmt->close();
+
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
+	}
 
 	DBIc_IMPSET_off(imp_sth);
 }
@@ -156,8 +187,33 @@ int dbd_st_finish(SV* sth, imp_sth_t* imp_sth)
 	return TRUE;
 }
 
+const char * dbd_st_analyze(SV *sth)
+{
+	D_imp_sth(sth);
+
+	if (!imp_sth->pstmt) {
+		do_error(sth, -1, "Statement was not prepared.");
+		return NULL;
+	}
+
+	// 2 = RemPreparedStatement::AnalyzeTree but RemPreparedStatement.h depends on Platform/LinkedList.h , so can not be included
+
+	try {
+		return imp_sth->pstmt->analyze(2);
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(sth, xcp.getSqlcode(), (char *) xcp.getText());
+		return NULL;
+	}
+}
+
 int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 {
+	
+	if (!imp_dbh->conn) {
+		do_error(dbh, -1, "Connection is not available.");
+		return FALSE;
+	}
+
 	try {
 		imp_dbh->conn->commit();
 	} catch (NuoDB::SQLException& xcp) {
@@ -170,6 +226,11 @@ int dbd_db_commit(SV* dbh, imp_dbh_t* imp_dbh)
 
 int dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh)
 {
+	if (!imp_dbh->conn) {
+		do_error(dbh, -1, "Connection is not available.");
+		return FALSE;
+	}
+	
 	try {
 		imp_dbh->conn->rollback();
 	} catch (NuoDB::SQLException& xcp) {
@@ -182,10 +243,10 @@ int dbd_db_rollback(SV* dbh, imp_dbh_t* imp_dbh)
 
 SV* dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
 {
-        STRLEN kl;
-        char *key = SvPV(keysv, kl);
+	STRLEN kl;
+	char *key = SvPV(keysv, kl);
 
-        if (kl==10 && strEQ(key, "AutoCommit")) {
+	if (kl==10 && strEQ(key, "AutoCommit")) {
 		return sv_2mortal(boolSV(DBIc_has(imp_dbh, DBIcf_AutoCommit)));
 	} else {
 		return Nullsv;
@@ -199,9 +260,23 @@ int dbd_db_STORE_attrib(SV* dbh, imp_dbh_t* imp_dbh, SV* keysv, SV* valuesv)
 	bool bool_value = SvTRUE(valuesv);
 
 	if (kl==10 && strEQ(key, "AutoCommit")) {
-		imp_dbh->conn->setAutoCommit(bool_value);
-		DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
-		return TRUE;
+		if (!imp_dbh->conn) {
+			do_error(dbh, -1, "Connection is not available.");
+
+			// We need to set valuesv to -900 in order to prevent 
+			// a croak() in DBI.xs:2168
+			
+			sv_setiv(valuesv, -900);
+			return FALSE;
+		}
+
+		try {
+			imp_dbh->conn->setAutoCommit(bool_value);
+			DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
+		} catch (NuoDB::SQLException& xcp) {
+			do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
+			return FALSE;
+		}
 	} else {
 		return FALSE;
 	}
@@ -225,7 +300,16 @@ int dbd_st_blob_read (SV *sth, imp_sth_t *imp_sth, int field, long offset, long 
 
 int dbd_db_disconnect(SV* dbh, imp_dbh_t* imp_dbh)
 {
-	imp_dbh->conn->close();
+	if (!imp_dbh->conn)
+		return FALSE;
+
+	try {
+		imp_dbh->conn->close();
+		imp_dbh->conn = NULL;
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -240,7 +324,8 @@ int dbd_bind_ph (SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
 	if (!imp_sth)
 		return FALSE;
 
-	sv_utf8_decode(value);
+	if (!imp_sth->pstmt)
+		return FALSE;
 
 	char * value_str = SvPV(value, value_len);
 
@@ -268,12 +353,38 @@ void dbd_db_destroy(SV* dbh, imp_dbh_t* imp_dbh)
 	imp_dbh->conn->release();
 }
 
+const char * dbd_db_version(SV *dbh)
+{
+	D_imp_dbh(dbh);
+
+	if (!imp_dbh->conn) {
+		do_error(dbh, -1, "Database not connected.");
+		return NULL;
+	}
+
+	NuoDB::DatabaseMetaData *metaData = imp_dbh->conn->getMetaData();
+
+	try {
+		return metaData->getDatabaseProductVersion();
+	} catch (NuoDB::SQLException& xcp) {
+		do_error(dbh, xcp.getSqlcode(), (char *) xcp.getText());
+		return NULL;
+	}
+
+	return NULL;
+}
+
+
 void do_error(SV* h, int rc, char* what)
 {
-        D_imp_xxh(h);
+	D_imp_xxh(h);
 
-        sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);
+	sv_setiv(DBIc_ERR(imp_xxh), (IV)rc);
 
-        SV *errstr = DBIc_ERRSTR(imp_xxh);
-        sv_setpv(errstr, what);
+	SV *errstr = DBIc_ERRSTR(imp_xxh);
+
+	SvUTF8_on(errstr);
+	sv_setpv(errstr, what);
+	sv_utf8_decode(errstr);
+
 }

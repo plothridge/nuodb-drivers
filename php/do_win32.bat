@@ -12,7 +12,7 @@ rmdir /Q /S RelWithDebInfo
 rmdir /Q /S php_nuodb.dir
 del /Q cmake_install.cmake
 del /Q NUOPHP.suo
-cmake -G "Visual Studio 9 2008" -D NUODB_ROOT=%NUODB_ROOT% -D PHP_ROOT=%PHP_INSTALL_DIR -D PHP_INCLUDE=%PHP_INSTALL_DIR%/SDK/include .
+cmake -G "Visual Studio 9 2008" -D NUODB_ROOT=%NUODB_ROOT% -D PHP_ROOT=%PHP_INSTALL_DIR% -D PHP_INCLUDE=%PHP_INSTALL_DIR%/SDK/include .
 devenv NUOPHP.sln /build Debug /project php_nuodb
 devenv NUOPHP.sln /build RelWithDebInfo /project php_nuodb
 copy /Y Debug\*.* %PHP_INSTALL_DIR%\debug

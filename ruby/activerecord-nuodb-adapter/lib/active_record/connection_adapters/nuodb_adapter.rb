@@ -26,7 +26,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'dbi'
+require 'nuodb'
 require 'arel/visitors/nuodb'
 require 'active_record'
 require 'active_record/base'
@@ -246,7 +246,7 @@ module ActiveRecord
         hostname = @config[:host]
         username = @config[:username]
         password = @config[:password]
-        @connection = DBI.connect("DBI:NuoDB:#{database}:#{hostname}", username, password)
+        @connection = ::Nuodb::Connection.createSqlConnection "#{database}@#{hostname}", database, username, password
       end
 
       #
@@ -260,15 +260,38 @@ module ActiveRecord
       end
 
       def tables()
-        @connection.tables
+        sql = 'select tablename from system.tables where schema = ?'
+        stmt = @connection.createPreparedStatement sql
+        stmt.setString 1, @connection.getSchema
+        result = stmt.executeQuery
+        tables = []
+        while result.next
+          tables << result.getString(1)
+        end
+        tables
       end
 
       def columns(table_name, name = nil)
-        @connection.columns(table_name).map {|ci|
-          # http://ruby-dbi.rubyforge.org/rdoc/classes/DBI/ColumnInfo.html
-          # TODO copy null value from ci
-          Column.new(ci.name.downcase, nil, ci.dbi_type, true)
-        }
+        # Please note here that the type returned from the system.fields table is different than the JDBC types
+        # returned in getMetaData
+
+        sql = 'select field,datatype,length from system.fields where schema=? and tablename=?'
+
+        stmt = @connection.createPreparedStatement sql
+        schema_name, table_name = split_table_name table_name
+        stmt.setString 1, schema_name
+        stmt.setString 2, table_name
+
+        rset = stmt.executeQuery
+        cols = []
+        while rset.next
+          name = rset.getString(1).downcase
+          default = nil
+          sql_type = nil # TODO should come from query
+          null = true # TODO should come from query
+          cols << Column.new(name, default, sql_type, null)
+        end
+        cols
       end
 
       def native_database_types
@@ -281,7 +304,7 @@ module ActiveRecord
         {
           :primary_key  => 'int not null generated always primary key',
           :string       => { :name => 'varchar', :limit => 255  },
-          :text         => { :name => 'varchar' },
+          :text         => { :name => 'varchar', :limit => 255  },
           :integer      => { :name => 'integer' },
           :float        => { :name => 'float', :limit => 8 },
           :decimal      => { :name => 'decimal' },
@@ -296,9 +319,32 @@ module ActiveRecord
           :nchar        => { :name => 'nchar' },
           :nvarchar     => { :name => 'nvarchar', :limit => 255 },
           :nvarchar_max => { :name => 'nvarchar(max)' },
-          :ntext        => { :name => 'ntext' },
+          :ntext        => { :name => 'ntext', :limit => 255 },
           :ss_timestamp => { :name => 'timestamp' }
         }
+      end
+
+      private
+
+      def split_table_name(table)
+        name_parts = table.split '.'
+        case name_parts.length
+        when 1
+          schema_name = @connection.getSchema
+          table_name = name_parts[0]
+        when 2
+          schema_name = name_parts[0]
+          table_name = name_parts[1]
+        else
+          raise "Invalid table name: #{table}"
+        end
+        [schema_name, table_name]
+      end
+
+      public
+
+      def quote_column_name(name) #:nodoc:
+        name.to_s
       end
 
     end #class NuoDBAdapter < AbstractAdapter

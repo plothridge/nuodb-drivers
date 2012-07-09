@@ -3,7 +3,7 @@ History.txt
 Manifest.txt
 README.md
 Rakefile
-lib/active_record/connection_adapters/nuodb/statements.rb
+lib/active_record/connection_adapters/nuodb/database_statements.rb
 lib/active_record/connection_adapters/nuodb/version.rb
 lib/active_record/connection_adapters/nuodb_adapter.rb
 lib/activerecord-nuodb-adapter.rb
