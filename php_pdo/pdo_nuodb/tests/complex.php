@@ -12,6 +12,7 @@ function query_with_row_count($sql) {
   try {  
     $db = open_db();
     foreach ($db->query($sql) as $row) {
+      // print_r($row);
       $row_count++;
     }
     $db = NULL;
@@ -26,14 +27,14 @@ function query_with_row_count($sql) {
 $sql = "select * from hockey where NUMBER<12";
 $row_count = query_with_row_count($sql);
 if ($row_count != 2) {
-   print("FAILED: $sql\n");
+   print("FAILED row count: $sql\nExpected 2, got $row_count\n");
 }
 
 // select test2
 $sql = "select * from hockey";
 $row_count = query_with_row_count($sql);
 if ($row_count != 25) {
-   print("FAILED: $sql\n");
+   print("FAILED row count: $sql\nExpected 25, got $row_count\n");
 }
 
 
@@ -52,7 +53,7 @@ $db = NULL;
 $sql = "select * from hockey";
 $row_count = query_with_row_count($sql);
 if ($row_count != 26) {
-   print("FAILED: $sql\n");
+   print("FAILED row count: $sql\nExpected 26, got $row_count\n");
 }
 
 // delete test1
@@ -70,7 +71,7 @@ $db = NULL;
 $sql = "select * from hockey";
 $row_count = query_with_row_count($sql);
 if ($row_count != 25) {
-   print("FAILED: $sql\n");
+   print("FAILED row count: $sql\nExpected 25, got $row_count\n");
 }
 $db = NULL;
 
