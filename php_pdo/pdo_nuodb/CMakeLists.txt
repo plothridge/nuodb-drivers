@@ -105,13 +105,15 @@ INCLUDE_DIRECTORIES (
     )
 
 SET (NUODB_PHPPDO_SOURCES
-    nuodb_driver.cpp
-    pdo_nuodb.cpp
-    nuodb_statement.cpp
+    nuodb_driver.c
+    pdo_nuodb.c
+    nuodb_statement.c
     php_pdo_nuodb_cpp_int.cpp
     php_pdo_nuodb_cpp_int.h
+    php_pdo_nuodb_c_cpp_common.h
     php_pdo_nuodb_int.h
     php_pdo_nuodb.h
+    config.h
     )
 
 IF (CMAKE_GENERATOR MATCHES "Unix Makefiles" OR CMAKE_GENERATOR MATCHES "Xcode")
