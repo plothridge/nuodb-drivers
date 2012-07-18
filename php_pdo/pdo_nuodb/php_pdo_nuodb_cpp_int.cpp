@@ -39,6 +39,36 @@
 #include "php_pdo_nuodb_cpp_int.h"
 
 /* describes a column -- stolen from <path-to-php-sdk>/include/ext/pdo/php_pdo_driver.h */
+
+enum pdo_param_type {
+	PDO_PARAM_NULL,
+
+	/* int as in long (the php native int type).
+	 * If you mark a column as an int, PDO expects get_col to return
+	 * a pointer to a long */
+	PDO_PARAM_INT,
+
+	/* get_col ptr should point to start of the string buffer */
+	PDO_PARAM_STR,
+
+	/* get_col: when len is 0 ptr should point to a php_stream *,
+	 * otherwise it should behave like a string. Indicate a NULL field
+	 * value by setting the ptr to NULL */
+	PDO_PARAM_LOB,
+
+	/* get_col: will expect the ptr to point to a new PDOStatement object handle,
+	 * but this isn't wired up yet */
+	PDO_PARAM_STMT, /* hierarchical result set */
+
+	/* get_col ptr should point to a zend_bool */
+	PDO_PARAM_BOOL,
+
+	/* get_col ptr should point to a zval*
+	   and the driver is responsible for adding correct type information to get_column_meta()
+	 */
+	PDO_PARAM_ZVAL
+};
+
 struct pdo_column_data {
 	char *name;
 	int namelen;
@@ -97,14 +127,14 @@ void PdoNuoDbHandle::setOptions(SqlOptionArray * options)
     _opts = new SqlOptionArray;
     _opts->count = 4;
     _opts->array = _opt_arr;
-    _opt_arr[0].option = (char const *) _strdup(options->array[0].option);
-    _opt_arr[0].extra = (void *) _strdup((const char *)options->array[0].extra);
-    _opt_arr[1].option = (char const *) _strdup(options->array[1].option);
-    _opt_arr[1].extra = (void *) _strdup((const char *)options->array[1].extra);
-    _opt_arr[2].option = (char const *) _strdup(options->array[2].option);
-    _opt_arr[2].extra = (void *) _strdup((const char *)options->array[2].extra);
-    _opt_arr[3].option = (char const *) _strdup(options->array[3].option);
-    _opt_arr[3].extra = (void *) _strdup((const char *)options->array[3].extra);
+    _opt_arr[0].option = (char const *) strdup(options->array[0].option);
+    _opt_arr[0].extra = (void *) strdup((const char *)options->array[0].extra);
+    _opt_arr[1].option = (char const *) strdup(options->array[1].option);
+    _opt_arr[1].extra = (void *) strdup((const char *)options->array[1].extra);
+    _opt_arr[2].option = (char const *) strdup(options->array[2].option);
+    _opt_arr[2].extra = (void *) strdup((const char *)options->array[2].extra);
+    _opt_arr[3].option = (char const *) strdup(options->array[3].option);
+    _opt_arr[3].extra = (void *) strdup((const char *)options->array[3].extra);
 }
 
 NuoDB::Connection * PdoNuoDbHandle::createConnection()
@@ -443,7 +473,8 @@ int pdo_nuodb_db_handle_close_connection(pdo_nuodb_db_handle *H) {
 
 int pdo_nuodb_db_handle_delete(pdo_nuodb_db_handle *H) {
 	try {
-		delete H->db;
+		PdoNuoDbHandle *db = (PdoNuoDbHandle *) (H->db);
+		delete db;
 		H->db = NULL;
 	} catch (...) {
 		H->db = NULL;
@@ -530,7 +561,8 @@ int pdo_nuodb_stmt_delete(pdo_nuodb_stmt * S) {
 			return 1;
 		}
 		free(S->sql);
-		delete S->stmt;
+		PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+		delete pdo_stmt;
 		S->stmt = NULL;
 	} catch (...) {
         return 0;
@@ -552,7 +584,7 @@ int pdo_nuodb_stmt_execute(pdo_nuodb_stmt * S, int *column_count, long *row_coun
 
     try
     {
-		PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
         pdo_stmt->execute();
         S->cursor_open = pdo_stmt->hasResultSet();
         *column_count = pdo_stmt->getColumnCount();

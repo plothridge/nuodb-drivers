@@ -146,7 +146,7 @@ static int nuodb_handle_preparer(pdo_dbh_t * dbh, const char * sql, long sql_len
         S = (pdo_nuodb_stmt *) ecalloc(1, sizeof(*S));
         S->H = H;
         S->stmt = s;
-		S->sql = _strdup(sql);
+	S->sql = strdup(sql);
         S->fetch_buf = NULL; // TODO: Needed?
         S->named_params = np;
         S->in_params = NULL;
