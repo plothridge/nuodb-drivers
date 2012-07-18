@@ -30,21 +30,25 @@
 #include "config.h"
 #endif
 
-extern "C"
-{
-#include "php.h"
-#ifdef ZEND_ENGINE_2
-# include "zend_exceptions.h"
-#endif
-#include "php_ini.h"
-#include "ext/standard/info.h"
-#include "pdo/php_pdo.h"
-#include "pdo/php_pdo_driver.h"
-#include "php_pdo_nuodb.h"
-}
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
 
+#include "php_pdo_nuodb_c_cpp_common.h"
 #include "php_pdo_nuodb_cpp_int.h"
-#include "php_pdo_nuodb_int.h"
+
+/* describes a column -- stolen from <path-to-php-sdk>/include/ext/pdo/php_pdo_driver.h */
+struct pdo_column_data {
+	char *name;
+	int namelen;
+	unsigned long maxlen;
+	enum pdo_param_type param_type;
+	unsigned long precision;
+
+	/* don't touch this unless your name is dbdo */
+	void *dbdo_data;
+};
 
 
 PdoNuoDbHandle::PdoNuoDbHandle(SqlOptionArray * options)
@@ -93,14 +97,14 @@ void PdoNuoDbHandle::setOptions(SqlOptionArray * options)
     _opts = new SqlOptionArray;
     _opts->count = 4;
     _opts->array = _opt_arr;
-    _opt_arr[0].option = (char const *) strdup(options->array[0].option);
-    _opt_arr[0].extra = (void *) strdup((const char *)options->array[0].extra);
-    _opt_arr[1].option = (char const *) strdup(options->array[1].option);
-    _opt_arr[1].extra = (void *) strdup((const char *)options->array[1].extra);
-    _opt_arr[2].option = (char const *) strdup(options->array[2].option);
-    _opt_arr[2].extra = (void *) strdup((const char *)options->array[2].extra);
-    _opt_arr[3].option = (char const *) strdup(options->array[3].option);
-    _opt_arr[3].extra = (void *) strdup((const char *)options->array[3].extra);
+    _opt_arr[0].option = (char const *) _strdup(options->array[0].option);
+    _opt_arr[0].extra = (void *) _strdup((const char *)options->array[0].extra);
+    _opt_arr[1].option = (char const *) _strdup(options->array[1].option);
+    _opt_arr[1].extra = (void *) _strdup((const char *)options->array[1].extra);
+    _opt_arr[2].option = (char const *) _strdup(options->array[2].option);
+    _opt_arr[2].extra = (void *) _strdup((const char *)options->array[2].extra);
+    _opt_arr[3].option = (char const *) _strdup(options->array[3].option);
+    _opt_arr[3].extra = (void *) _strdup((const char *)options->array[3].extra);
 }
 
 NuoDB::Connection * PdoNuoDbHandle::createConnection()
@@ -210,11 +214,10 @@ NuoDB::PreparedStatement * PdoNuoDbStatement::createStatement(char const * sql)
     } catch (NuoDB::SQLException & e) {
         int code = e.getSqlcode();
         const char *text = e.getText();
-        zend_throw_exception_ex(php_pdo_get_exception(), code TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
-                                "HY000", code, text);
+		nuodb_throw_zend_exception("HY000", code, text);
+		
     } catch (...) {
-        zend_throw_exception_ex(php_pdo_get_exception(), 0 TSRMLS_CC, "SQLSTATE[%s] [%d] %s",
-                                "HY000", 0, "Unknown problem");
+		nuodb_throw_zend_exception("HY000", 0, "Unknown problem");
     }
 
     return _stmt;
@@ -404,3 +407,251 @@ void PdoNuoDbStatement::setString(size_t index, const char *value)
     return;
 }
 
+
+// C/C++ jump functions
+
+extern "C" {
+int pdo_nuodb_db_handle_commit(pdo_nuodb_db_handle *H) {
+	try {
+		PdoNuoDbHandle *db = (PdoNuoDbHandle *) (H->db);
+		db->commit();
+	} catch (...) {
+        return 0;
+    }
+    return 1;
+}
+
+int pdo_nuodb_db_handle_rollback(pdo_nuodb_db_handle *H) {
+	try {
+		PdoNuoDbHandle *db = (PdoNuoDbHandle *) (H->db);
+		db->rollback();
+	} catch (...) {
+        return 0;
+    }
+    return 1;
+}
+
+int pdo_nuodb_db_handle_close_connection(pdo_nuodb_db_handle *H) {
+	try {
+		PdoNuoDbHandle *db = (PdoNuoDbHandle *) (H->db);
+		db->closeConnection();
+	} catch (...) {
+        return 0;
+    }
+    return 1;
+}
+
+int pdo_nuodb_db_handle_delete(pdo_nuodb_db_handle *H) {
+	try {
+		delete H->db;
+		H->db = NULL;
+	} catch (...) {
+		H->db = NULL;
+        return 0;
+    }
+    return 1;
+}
+
+int pdo_nuodb_db_handle_commit_if_auto(pdo_nuodb_db_handle * H, int in_txn, int auto_commit)
+{
+    if (H == NULL) {
+        return 0;
+    }
+    if (in_txn)
+    {
+        if (auto_commit)
+        {
+            pdo_nuodb_db_handle_commit(H); //H->db->commit();
+            return 1;
+        }
+        else
+        {
+            pdo_nuodb_db_handle_rollback(H);  //H->db->rollback();
+        }
+    }
+    return 0;
+}
+
+void *pdo_nuodb_db_handle_create_statement(pdo_nuodb_db_handle * H, const char * sql) 
+{
+	PdoNuoDbStatement *stmt = NULL;
+    try
+    {
+		PdoNuoDbHandle *db = (PdoNuoDbHandle *) (H->db);
+		stmt = db->createStatement(sql);
+    }
+    catch (...)
+    {
+		stmt = NULL;
+    }
+	return (void *)stmt;
+}
+
+long pdo_nuodb_db_handle_doer(pdo_nuodb_db_handle * H, void *dbh_opaque, const char * sql, unsigned in_txn, unsigned auto_commit, void (*pt2pdo_dbh_t_set_in_txn)(void *dbh_opaque, unsigned in_txn))  
+{
+	unsigned in_txn_state = in_txn;
+    try
+    {
+        PdoNuoDbStatement * stmt = (PdoNuoDbStatement *) pdo_nuodb_db_handle_create_statement(H, sql);
+        (*pt2pdo_dbh_t_set_in_txn)(dbh_opaque, 1);
+        stmt->execute();
+        pdo_nuodb_db_handle_commit_if_auto(H, in_txn, auto_commit);
+    }
+    catch (...)
+    {
+        (*pt2pdo_dbh_t_set_in_txn)(dbh_opaque, in_txn_state);
+        return -1;
+    }
+    (*pt2pdo_dbh_t_set_in_txn)(dbh_opaque, in_txn_state);
+    return 1;
+}
+
+int pdo_nuodb_db_handle_factory(pdo_nuodb_db_handle * H, SqlOptionArray *optionsArray) {
+	try {
+		PdoNuoDbHandle *db = new PdoNuoDbHandle(optionsArray);
+        H->db = (void *) db;
+        db->createConnection();
+	} catch (...) {
+        return 0;
+    }
+    return 1;
+}
+
+void pdo_nuodb_db_handle_set_last_app_error(pdo_nuodb_db_handle *H, const char *err_msg) {
+	H->last_app_error = err_msg;
+}
+
+int pdo_nuodb_stmt_delete(pdo_nuodb_stmt * S) {
+	try {
+		if (S == NULL) {
+			return 1;
+		}
+		if (S->stmt == NULL) {
+			return 1;
+		}
+		free(S->sql);
+		delete S->stmt;
+		S->stmt = NULL;
+	} catch (...) {
+        return 0;
+    }
+    return 1;
+}
+
+int pdo_nuodb_stmt_execute(pdo_nuodb_stmt * S, int *column_count, long *row_count) {
+    pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *) S->H;
+    if (!H) {
+        return 0;
+    }
+    unsigned long affected_rows = 0;
+    if (!S->stmt) {
+        return 0;
+    }
+
+    // TODO: check that (!stmt->executed) here?
+
+    try
+    {
+		PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+        pdo_stmt->execute();
+        S->cursor_open = pdo_stmt->hasResultSet();
+        *column_count = pdo_stmt->getColumnCount();
+    }
+    catch (NuoDB::SQLException & e)
+    {
+        return 0;
+    }
+    *row_count = affected_rows;
+
+    // TODO: commit here?
+
+	pdo_nuodb_db_handle_commit(H);//    H->db->commit();
+    S->exhausted = !S->cursor_open;
+
+    return 1;
+}
+
+int pdo_nuodb_stmt_fetch(pdo_nuodb_stmt * S, long *row_count) {
+    pdo_nuodb_db_handle * H = (pdo_nuodb_db_handle *)S->H;
+
+    if (!S->exhausted)
+    {
+		PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+		if (pdo_stmt->next())
+        {
+            (*row_count)++;
+            return 1;
+        }
+        else
+        {
+            S->exhausted = 1;
+            return 0;
+        }
+    }
+    return 0;
+
+}
+
+char const *pdo_nuodb_stmt_get_column_name(pdo_nuodb_stmt * S, int colno) {
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+    char const * column_name = pdo_stmt->getColumnName(colno);
+	return column_name;
+}
+
+int pdo_nuodb_stmt_get_sql_type(pdo_nuodb_stmt * S, int colno) {
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+    int sql_type = pdo_stmt->getSqlType(colno);
+	return sql_type;
+}
+
+int pdo_nuodb_stmt_set_integer(pdo_nuodb_stmt *S, int paramno, long int_val) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	pdo_stmt->setInteger(paramno,  int_val);
+	return 1;
+}
+
+int pdo_nuodb_stmt_set_string(pdo_nuodb_stmt *S, int paramno, char *str_val)
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	pdo_stmt->setString(paramno,  str_val);
+	return 1;
+}
+
+unsigned int pdo_nuodb_stmt_get_integer(pdo_nuodb_stmt *S, int colno) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	return pdo_stmt->getInteger(colno);
+}
+
+unsigned long pdo_nuodb_stmt_get_long(pdo_nuodb_stmt *S, int colno) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	return pdo_stmt->getLong(colno);
+}
+
+const char *pdo_nuodb_stmt_get_string(pdo_nuodb_stmt *S, int colno) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	return pdo_stmt->getString(colno);
+}
+
+unsigned long pdo_nuodb_stmt_get_date(pdo_nuodb_stmt *S, int colno) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	return pdo_stmt->getDate(colno);
+}
+
+unsigned long pdo_nuodb_stmt_get_time(pdo_nuodb_stmt *S, int colno) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	return pdo_stmt->getTime(colno);
+}
+
+unsigned long pdo_nuodb_stmt_get_timestamp(pdo_nuodb_stmt *S, int colno) 
+{
+	PdoNuoDbStatement *pdo_stmt = (PdoNuoDbStatement *) S->stmt;
+	return pdo_stmt->getTimestamp(colno);
+}
+
+} // end of extern "C"
