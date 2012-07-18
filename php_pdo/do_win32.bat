@@ -17,5 +17,5 @@ devenv NuoPhpPdo.sln /build Debug /project NuoPhpPdo
 devenv NuoPhpPdo.sln /build RelWithDebInfo /project NuoPhpPdo
 copy /Y Debug\*.* %PHP_INSTALL_DIR%\debug
 copy /Y RelWithDebInfo\*.* %PHP_INSTALL_DIR%
-php tests\simpletest.php
+php tests\simple.php
 
