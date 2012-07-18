@@ -35,17 +35,6 @@
 #include "DatabaseMetaData.h"
 #include "PreparedStatement.h"
 
-struct SqlOption
-{
-    char const * option;
-    void * extra;
-};
-
-struct SqlOptionArray
-{
-    size_t count;
-    SqlOption const * array;
-};
 
 class PdoNuoDbStatement;
 
